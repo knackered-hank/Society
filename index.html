@@ -31,12 +31,12 @@
       filter: drop-shadow(0 0 12px rgba(252, 211, 77, 0.8));
     }
     
-    /* 隱藏無用標籤文字或裝飾框 (已移除離島隱藏設定) */
+    /* 隱藏無用標籤文字或裝飾框 */
     text, #box { 
       display: none !important; 
     }
 
-    /* 解答彈出視窗 - 大字體與寬版排版 */
+    /* 解答彈出視窗 */
     #modal-overlay {
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
       background: rgba(0, 0, 0, 0.75);
@@ -100,7 +100,7 @@
   <div class="hint">👆 點擊地圖區塊顯示地形・滾輪縮放・按住拖曳</div>
 
   <script>
-    // --- 1. 精準比對庫 (同時包含行政區名與地形分類) ---
+    // --- 1. 精準比對庫 (涵蓋全台22縣市) ---
     const keywordMapping = {
       '基隆': { key: 'keelung', name: '基隆市' }, '10017': { key: 'keelung', name: '基隆市' },
       '臺北': { key: 'taipei', name: '臺北市' }, '台北': { key: 'taipei', name: '臺北市' }, '63000': { key: 'taipei', name: '臺北市' },
@@ -123,33 +123,39 @@
       '宜蘭': { key: 'yilan', name: '宜蘭縣' }, '10002': { key: 'yilan', name: '宜蘭縣' },
       '花蓮': { key: 'huadong', name: '花蓮縣' }, '10015': { key: 'huadong', name: '花蓮縣' },
       '臺東': { key: 'huadong', name: '臺東縣' }, '台東': { key: 'huadong', name: '臺東縣' }, '10014': { key: 'huadong', name: '臺東縣' },
-      // 新增離島對應
       '澎湖': { key: 'penghu', name: '澎湖縣' }, '10016': { key: 'penghu', name: '澎湖縣' },
       '金門': { key: 'kinmen', name: '金門縣' }, '09020': { key: 'kinmen', name: '金門縣' },
       '連江': { key: 'matsu', name: '連江縣' }, '馬祖': { key: 'matsu', name: '連江縣' }, '09007': { key: 'matsu', name: '連江縣' }
     };
 
-    // --- 2. 臺灣與離島地形題庫 ---
+    // --- 2. 地形題庫 ---
     const geoData = {
-      'keelung': { title: '谷灣式海岸 (岬灣地形)', reason: '丘陵沉降、海水入侵', desc: '海岸線曲折，水深利於建港，為北臺灣重要良港。', imgHint: '<img src="keelung.jpg" alt="未上傳 keelung.jpg">' },
-      'taipei': { title: '臺北盆地', reason: '斷層陷落與河流沖積', desc: '四周被火山與山脈環繞。因地形封閉，夏季易產生悶熱的盆地效應。', imgHint: '<img src="taipei.jpg" alt="未上傳 taipei.jpg">' },
-      'taoyuan': { title: '桃園臺地', reason: '古石門溪沖積扇隆起', desc: '地勢平坦。因缺乏大型河川，先民廣建「埤塘」蓄水，形成千塘之鄉。', imgHint: '<img src="taoyuan.jpg" alt="未上傳 taoyuan.jpg">' },
-      'zhumiao': { title: '竹苗丘陵', reason: '河川切割與地殼抬升', desc: '地勢起伏和緩，氣候適合茶樹生長，是東方美人茶產地。', imgHint: '<img src="zhumiao.jpg" alt="未上傳 zhumiao.jpg">' },
-      'taichung': { title: '臺中盆地 / 大肚臺地', reason: '板塊擠壓與斷層作用', desc: '全臺最大盆地，西緣隆起了大肚臺地。氣候溫和為農業與都會樞紐。', imgHint: '<img src="taichung.jpg" alt="未上傳 taichung.jpg">' },
-      'changhua': { title: '彰化平原', reason: '濁水溪等河川沖積', desc: '土壤肥沃且有八堡圳灌溉，農業發達，素有「臺灣穀倉」美譽。', imgHint: '<img src="changhua.jpg" alt="未上傳 changhua.jpg">' },
-      'nantou': { title: '埔里盆地 / 中央山脈', reason: '斷層陷落 / 板塊擠壓', desc: '全臺唯一不靠海的縣市，境內多高山，並有著名的埔里盆地。', imgHint: '<img src="nantou.jpg" alt="未上傳 nantou.jpg">' },
-      'jianan': { title: '嘉南平原', reason: '多條河川長期沖積', desc: '臺灣最大平原！沿岸地勢低平，常有沙洲與潟湖地形，早期多闢為鹽田。', imgHint: '<img src="jianan.jpg" alt="未上傳 jianan.jpg">' },
-      'kaoping': { title: '高屏平原 / 恆春半島', reason: '高屏溪沖積 / 珊瑚礁隆起', desc: '最南端恆春半島佈滿珊瑚礁石灰岩，熱帶氣候顯著。', imgHint: '<img src="kaoping.jpg" alt="未上傳 kaoping.jpg">' },
-      'yilan': { title: '蘭陽平原', reason: '蘭陽溪沖積扇', desc: '地形呈向海開口的畚箕狀。冬季迎東北季風，降雨豐沛。', imgHint: '<img src="yilan.jpg" alt="未上傳 yilan.jpg">' },
-      'huadong': { title: '花東縱谷 / 海岸山脈', reason: '板塊擠壓', desc: '縱谷夾在中央與海岸山脈間，呈狹長形平原；海岸山脈為板塊擠壓隆起。', imgHint: '<img src="huadong.jpg" alt="未上傳 huadong.jpg">' },
-      
-      // 新增離島資訊 (圖片建議準備 penghu.jpg, kinmen.jpg, matsu.jpg)
-      'penghu': { title: '澎湖群島 (玄武岩方山)', reason: '火山噴發與玄武岩熔岩冷卻', desc: '主要由火山熔岩冷卻形成，地形平坦呈方山狀。擁有壯麗的柱狀玄武岩與豐富的珊瑚礁地形。', imgHint: '<img src="penghu.jpg" alt="未上傳 penghu.jpg">' },
-      'kinmen': { title: '金門丘陵 (花崗岩地形)', reason: '古老花崗岩地層與風化侵蝕', desc: '主要由花崗片麻岩構成，地勢起伏和緩。因土壤較貧瘠且花崗岩地層堅硬，早期農業多種植高粱與花生。', imgHint: '<img src="kinmen.jpg" alt="未上傳 kinmen.jpg">' },
-      'matsu': { title: '馬祖列島 (花崗岩岬灣地形)', reason: '板塊運動與海蝕作用', desc: '地勢崎嶇起伏大，海岸線曲折且多懸崖峭壁與海蝕洞，春夏季更有著名的「藍眼淚」生態景觀。', imgHint: '<img src="matsu.jpg" alt="未上傳 matsu.jpg">' }
+      'keelung': { title: '谷灣式海岸 (岬灣地形)', reason: '丘陵沉降、海水入侵', desc: '海岸線曲折，水深利於建港，為北臺灣重要良港。' },
+      'taipei': { title: '臺北盆地', reason: '斷層陷落與河流沖積', desc: '四周被火山與山脈環繞。因地形封閉，夏季易產生悶熱的盆地效應。' },
+      'taoyuan': { title: '桃園臺地', reason: '古石門溪沖積扇隆起', desc: '地勢平坦。因缺乏大型河川，先民廣建「埤塘」蓄水，形成千塘之鄉。' },
+      'zhumiao': { title: '竹苗丘陵', reason: '河川切割與地殼抬升', desc: '地勢起伏和緩，氣候適合茶樹生長，是東方美人茶產地。' },
+      'taichung': { title: '臺中盆地 / 大肚臺地', reason: '板塊擠壓與斷層作用', desc: '全臺最大盆地，西緣隆起了大肚臺地。氣候溫和為農業與都會樞紐。' },
+      'changhua': { title: '彰化平原', reason: '濁水溪等河川沖積', desc: '土壤肥沃且有八堡圳灌溉，農業發達，素有「臺灣穀倉」美譽。' },
+      'nantou': { title: '埔里盆地 / 中央山脈', reason: '斷層陷落 / 板塊擠壓', desc: '全臺唯一不靠海的縣市，境內多高山，並有著名的埔里盆地。' },
+      'jianan': { title: '嘉南平原', reason: '多條河川長期沖積', desc: '臺灣最大平原！沿岸地勢低平，常有沙洲與潟湖地形，早期多闢為鹽田。' },
+      'kaoping': { title: '高屏平原 / 恆春半島', reason: '高屏溪沖積 / 珊瑚礁隆起', desc: '最南端恆春半島佈滿珊瑚礁石灰岩，熱帶氣候顯著。' },
+      'yilan': { title: '蘭陽平原', reason: '蘭陽溪沖積扇', desc: '地形呈向海開口的畚箕狀。冬季迎東北季風，降雨豐沛。' },
+      'huadong': { title: '花東縱谷 / 海岸山脈', reason: '板塊擠壓', desc: '縱谷夾在中央與海岸山脈間，呈狹長形平原；海岸山脈為板塊擠壓隆起。' },
+      'penghu': { title: '澎湖群島 (玄武岩方山)', reason: '火山噴發與玄武岩熔岩冷卻', desc: '主要由火山熔岩冷卻形成，地形平坦呈方山狀。擁有壯麗的柱狀玄武岩與豐富的珊瑚礁地形。' },
+      'kinmen': { title: '金門丘陵 (花崗岩地形)', reason: '古老花崗岩地層與風化侵蝕', desc: '主要由花崗片麻岩構成，地勢起伏和緩。因土壤較貧瘠且花崗岩地層堅硬，早期農業多種植高粱與花生。' },
+      'matsu': { title: '馬祖列島 (花崗岩岬灣地形)', reason: '板塊運動與海蝕作用', desc: '地勢崎嶇起伏大，海岸線曲折且多懸崖峭壁與海蝕洞，春夏季更有著名的「藍眼淚」生態景觀。' }
     };
 
-    // --- 3. 載入 SVG 與 X光透視掃描 ---
+    // --- 3. 圖片自動轉換副檔名工具 (.jpg -> .jpeg -> .png) ---
+    function renderSmartImage(key) {
+      return `<img src="${key}.jpg" 
+                   onerror="if(this.src.endsWith('.jpg')){ this.src='${key}.jpeg'; }
+                            else if(this.src.endsWith('.jpeg')){ this.src='${key}.png'; }
+                            else { this.onerror=null; this.parentElement.innerHTML='🖼️ 尚未上傳 ${key}.jpg 或 ${key}.jpeg'; }" 
+                   alt="${key}">`;
+    }
+
+    // --- 4. 載入 SVG 與 地圖點擊事件 ---
     const container = document.getElementById('map-container');
     const wrapper = document.getElementById('map-wrapper');
     const modalOverlay = document.getElementById('modal-overlay');
@@ -187,42 +193,45 @@
             let regionKey = null;
             let exactCountyName = '';
             
-            // 掃描文字以找出具體的行政區名稱
             for (const [keyword, data] of Object.entries(keywordMapping)) {
               if (rawText.includes(keyword)) {
                 regionKey = data.key;
-                exactCountyName = data.name; // 抓取特定的縣市名
+                exactCountyName = data.name;
                 break;
               }
             }
 
             if (regionKey && geoData[regionKey]) {
               const data = geoData[regionKey];
-              openModal({ ...data, title: `【${exactCountyName}】 ${data.title}` });
+              openModal({ 
+                ...data, 
+                title: `【${exactCountyName}】 ${data.title}`,
+                imgHtml: renderSmartImage(regionKey)
+              });
             } else {
               openModal({
                 title: `未綁定區域`,
                 reason: '資料庫無此區域',
                 desc: `點擊成功，但尚未建立此處地形資料。(偵測到的原始標籤: ${rawText.substring(0, 30)})`,
-                imgHint: '🖼️'
+                imgHtml: '🖼️ 暫無圖片'
               });
             }
           });
         }
       });
 
-    // --- 4. 視窗控制 ---
+    // --- 5. 視窗控制 ---
     function openModal(data) {
       document.getElementById('m-title').innerText = data.title;
       document.getElementById('m-reason').innerText = `💡 成因：${data.reason}`;
       document.getElementById('m-desc').innerText = data.desc;
-      document.getElementById('m-img').innerHTML = data.imgHint;
+      document.getElementById('m-img').innerHTML = data.imgHtml;
       modalOverlay.classList.add('active');
     }
     function closeModal() { modalOverlay.classList.remove('active'); }
     modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
 
-    // --- 5. 拖曳與縮放 ---
+    // --- 6. 拖曳與縮放 ---
     function setTransform() { container.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`; }
 
     wrapper.addEventListener('mousedown', (e) => {
