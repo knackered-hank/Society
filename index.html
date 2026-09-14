@@ -17,7 +17,7 @@
     #map-container { width: 100%; height: 100%; transform-origin: 0 0; }
     svg { width: 100%; height: 100%; object-fit: contain; }
 
-    /* 強制穿透：讓 SVG 內所有隱藏元素失去點擊判定 */
+    /* 強制穿透 */
     svg * { pointer-events: none !important; }
     
     /* 只有行政區塊允許被點擊 */
@@ -31,7 +31,7 @@
       filter: drop-shadow(0 0 12px rgba(252, 211, 77, 0.8));
     }
     
-    /* 隱藏離島 (支援中文與行政代碼 10016澎湖, 09020金門, 09007連江) */
+    /* 隱藏離島 */
     text, #box, 
     path[title*="連江"], path[title*="金門"], path[title*="澎湖"],
     path[id*="09007"], path[id*="09020"], path[id*="10016"] { 
@@ -64,11 +64,17 @@
     .modal-title { font-size: 34px; font-weight: bold; margin-bottom: 12px; color: #1d4ed8; }
     .modal-reason { font-size: 18px; font-weight: bold; color: #b45309; margin-bottom: 18px; background: #fef3c7; padding: 12px; border-radius: 8px;}
     .modal-desc { font-size: 18px; line-height: 1.7; margin-bottom: 25px; color: #334155; }
+    
+    /* 圖片自動縮放且不跑版機制 */
     .modal-img-placeholder {
       width: 100%; height: 220px; background: #e2e8f0; border: 3px dashed #cbd5e1;
       border-radius: 12px; display: flex; justify-content: center; align-items: center;
-      color: #64748b; font-weight: bold; font-size: 20px; overflow: hidden;
+      color: #64748b; font-weight: bold; font-size: 18px; overflow: hidden;
     }
+    .modal-img-placeholder img {
+      width: 100%; height: 100%; object-fit: cover; /* 關鍵：確保圖片完美填滿不變形 */
+    }
+
     .hint {
       position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%);
       font-size: 18px; background: rgba(30, 41, 59, 0.9); padding: 12px 24px;
@@ -94,41 +100,45 @@
   <div class="hint">👆 點擊地圖區塊顯示地形・滾輪縮放・按住拖曳</div>
 
   <script>
-    // --- 1. 終極比對庫 (同時包含中文關鍵字與內政部行政區數字代碼) ---
+    // --- 1. 精準比對庫 (同時包含行政區名與地形分類) ---
+    // 注意：越精確的名稱 (如新竹市) 放在前面，避免被 (新竹) 攔截
     const keywordMapping = {
-      '基隆': 'keelung', '10017': 'keelung',
-      '臺北': 'taipei', '台北': 'taipei', '新北': 'taipei', '63000': 'taipei', '65000': 'taipei',
-      '桃園': 'taoyuan', '68000': 'taoyuan',
-      '新竹': 'zhumiao', '苗栗': 'zhumiao', '10018': 'zhumiao', '10004': 'zhumiao', '10005': 'zhumiao',
-      '臺中': 'taichung', '台中': 'taichung', '66000': 'taichung',
-      '彰化': 'changhua', '10007': 'changhua',
-      '南投': 'nantou', '10008': 'nantou',
-      '雲林': 'jianan', '嘉義': 'jianan', '臺南': 'jianan', '台南': 'jianan', '10009': 'jianan', '10010': 'jianan', '10020': 'jianan', '67000': 'jianan',
-      '高雄': 'kaoping', '屏東': 'kaoping', '64000': 'kaoping', '10013': 'kaoping',
-      '宜蘭': 'yilan', '10002': 'yilan',
-      '花蓮': 'huadong', '臺東': 'huadong', '台東': 'huadong', '10015': 'huadong', '10014': 'huadong'
+      '基隆': { key: 'keelung', name: '基隆市' }, '10017': { key: 'keelung', name: '基隆市' },
+      '臺北': { key: 'taipei', name: '臺北市' }, '台北': { key: 'taipei', name: '臺北市' }, '63000': { key: 'taipei', name: '臺北市' },
+      '新北': { key: 'taipei', name: '新北市' }, '65000': { key: 'taipei', name: '新北市' },
+      '桃園': { key: 'taoyuan', name: '桃園市' }, '68000': { key: 'taoyuan', name: '桃園市' },
+      '新竹市': { key: 'zhumiao', name: '新竹市' }, '10018': { key: 'zhumiao', name: '新竹市' },
+      '新竹縣': { key: 'zhumiao', name: '新竹縣' }, '10004': { key: 'zhumiao', name: '新竹縣' },
+      '新竹': { key: 'zhumiao', name: '新竹' },
+      '苗栗': { key: 'zhumiao', name: '苗栗縣' }, '10005': { key: 'zhumiao', name: '苗栗縣' },
+      '臺中': { key: 'taichung', name: '臺中市' }, '台中': { key: 'taichung', name: '臺中市' }, '66000': { key: 'taichung', name: '臺中市' },
+      '彰化': { key: 'changhua', name: '彰化縣' }, '10007': { key: 'changhua', name: '彰化縣' },
+      '南投': { key: 'nantou', name: '南投縣' }, '10008': { key: 'nantou', name: '南投縣' },
+      '嘉義市': { key: 'jianan', name: '嘉義市' }, '10020': { key: 'jianan', name: '嘉義市' },
+      '嘉義縣': { key: 'jianan', name: '嘉義縣' }, '10010': { key: 'jianan', name: '嘉義縣' },
+      '嘉義': { key: 'jianan', name: '嘉義' },
+      '雲林': { key: 'jianan', name: '雲林縣' }, '10009': { key: 'jianan', name: '雲林縣' },
+      '臺南': { key: 'jianan', name: '臺南市' }, '台南': { key: 'jianan', name: '臺南市' }, '67000': { key: 'jianan', name: '臺南市' },
+      '高雄': { key: 'kaoping', name: '高雄市' }, '64000': { key: 'kaoping', name: '高雄市' },
+      '屏東': { key: 'kaoping', name: '屏東縣' }, '10013': { key: 'kaoping', name: '屏東縣' },
+      '宜蘭': { key: 'yilan', name: '宜蘭縣' }, '10002': { key: 'yilan', name: '宜蘭縣' },
+      '花蓮': { key: 'huadong', name: '花蓮縣' }, '10015': { key: 'huadong', name: '花蓮縣' },
+      '臺東': { key: 'huadong', name: '臺東縣' }, '台東': { key: 'huadong', name: '臺東縣' }, '10014': { key: 'huadong', name: '臺東縣' }
     };
 
-    // 視窗顯示用的乾淨名稱 (過濾掉醜陋的代碼)
-    const cleanDisplayNames = {
-      'keelung': '基隆', 'taipei': '大臺北地區', 'taoyuan': '桃園', 'zhumiao': '竹苗地區',
-      'taichung': '臺中地區', 'changhua': '彰化', 'nantou': '南投', 
-      'jianan': '雲嘉南地區', 'kaoping': '高屏地區', 'yilan': '宜蘭', 'huadong': '花東地區'
-    };
-
-    // --- 2. 臺灣地形題庫 ---
+    // --- 2. 臺灣地形題庫 (圖片 src 已為您設定好檔名範例) ---
     const geoData = {
-      'keelung': { title: '谷灣式海岸 (岬灣地形)', reason: '丘陵沉降、海水入侵', desc: '海岸線曲折，水深利於建港，為北臺灣重要良港。', imgHint: '🖼️ 建議放入基隆海岸圖' },
-      'taipei': { title: '臺北盆地', reason: '斷層陷落與河流沖積', desc: '四周被火山與山脈環繞。因地形封閉，夏季易產生悶熱的盆地效應。', imgHint: '🖼️ 建議放入臺北盆地圖' },
-      'taoyuan': { title: '桃園臺地', reason: '古石門溪沖積扇隆起', desc: '地勢平坦。因缺乏大型河川，先民廣建「埤塘」蓄水，形成千塘之鄉。', imgHint: '🖼️ 建議放入埤塘空照圖' },
-      'zhumiao': { title: '竹苗丘陵', reason: '河川切割與地殼抬升', desc: '地勢起伏和緩，氣候適合茶樹生長，是東方美人茶產地。', imgHint: '🖼️ 建議放入茶園梯田圖' },
-      'taichung': { title: '臺中盆地 / 大肚臺地', reason: '板塊擠壓與斷層作用', desc: '全臺最大盆地，西緣隆起了大肚臺地。氣候溫和為農業與都會樞紐。', imgHint: '🖼️ 建議放入大肚臺地圖' },
-      'changhua': { title: '彰化平原', reason: '濁水溪等河川沖積', desc: '土壤肥沃且有八堡圳灌溉，農業發達，素有「臺灣穀倉」美譽。', imgHint: '🖼️ 建議放入平原稻田圖' },
-      'nantou': { title: '埔里盆地 / 中央山脈', reason: '斷層陷落 / 板塊擠壓', desc: '全臺唯一不靠海的縣市，境內多高山，並有著名的埔里盆地。', imgHint: '🖼️ 建議放入高山圖' },
-      'jianan': { title: '嘉南平原', reason: '多條河川長期沖積', desc: '臺灣最大平原！沿岸地勢低平，常有沙洲與潟湖地形，早期多闢為鹽田。', imgHint: '🖼️ 建議放入潟湖圖' },
-      'kaoping': { title: '高屏平原 / 恆春半島', reason: '高屏溪沖積 / 珊瑚礁隆起', desc: '最南端恆春半島佈滿珊瑚礁石灰岩，熱帶氣候顯著。', imgHint: '🖼️ 建議放入珊瑚礁海岸圖' },
-      'yilan': { title: '蘭陽平原', reason: '蘭陽溪沖積扇', desc: '地形呈向海開口的畚箕狀。冬季迎東北季風，降雨豐沛。', imgHint: '🖼️ 建議放入蘭陽平原圖' },
-      'huadong': { title: '花東縱谷 / 海岸山脈', reason: '板塊擠壓', desc: '縱谷夾在中央與海岸山脈間，呈狹長形平原；海岸山脈為板塊擠壓隆起。', imgHint: '🖼️ 建議放入花東縱谷圖' }
+      'keelung': { title: '谷灣式海岸 (岬灣地形)', reason: '丘陵沉降、海水入侵', desc: '海岸線曲折，水深利於建港，為北臺灣重要良港。', imgHint: '<img src="keelung.jpg" alt="未上傳 keelung.jpg">' },
+      'taipei': { title: '臺北盆地', reason: '斷層陷落與河流沖積', desc: '四周被火山與山脈環繞。因地形封閉，夏季易產生悶熱的盆地效應。', imgHint: '<img src="taipei.jpg" alt="未上傳 taipei.jpg">' },
+      'taoyuan': { title: '桃園臺地', reason: '古石門溪沖積扇隆起', desc: '地勢平坦。因缺乏大型河川，先民廣建「埤塘」蓄水，形成千塘之鄉。', imgHint: '<img src="taoyuan.jpg" alt="未上傳 taoyuan.jpg">' },
+      'zhumiao': { title: '竹苗丘陵', reason: '河川切割與地殼抬升', desc: '地勢起伏和緩，氣候適合茶樹生長，是東方美人茶產地。', imgHint: '<img src="zhumiao.jpg" alt="未上傳 zhumiao.jpg">' },
+      'taichung': { title: '臺中盆地 / 大肚臺地', reason: '板塊擠壓與斷層作用', desc: '全臺最大盆地，西緣隆起了大肚臺地。氣候溫和為農業與都會樞紐。', imgHint: '<img src="taichung.jpg" alt="未上傳 taichung.jpg">' },
+      'changhua': { title: '彰化平原', reason: '濁水溪等河川沖積', desc: '土壤肥沃且有八堡圳灌溉，農業發達，素有「臺灣穀倉」美譽。', imgHint: '<img src="changhua.jpg" alt="未上傳 changhua.jpg">' },
+      'nantou': { title: '埔里盆地 / 中央山脈', reason: '斷層陷落 / 板塊擠壓', desc: '全臺唯一不靠海的縣市，境內多高山，並有著名的埔里盆地。', imgHint: '<img src="nantou.jpg" alt="未上傳 nantou.jpg">' },
+      'jianan': { title: '嘉南平原', reason: '多條河川長期沖積', desc: '臺灣最大平原！沿岸地勢低平，常有沙洲與潟湖地形，早期多闢為鹽田。', imgHint: '<img src="jianan.jpg" alt="未上傳 jianan.jpg">' },
+      'kaoping': { title: '高屏平原 / 恆春半島', reason: '高屏溪沖積 / 珊瑚礁隆起', desc: '最南端恆春半島佈滿珊瑚礁石灰岩，熱帶氣候顯著。', imgHint: '<img src="kaoping.jpg" alt="未上傳 kaoping.jpg">' },
+      'yilan': { title: '蘭陽平原', reason: '蘭陽溪沖積扇', desc: '地形呈向海開口的畚箕狀。冬季迎東北季風，降雨豐沛。', imgHint: '<img src="yilan.jpg" alt="未上傳 yilan.jpg">' },
+      'huadong': { title: '花東縱谷 / 海岸山脈', reason: '板塊擠壓', desc: '縱谷夾在中央與海岸山脈間，呈狹長形平原；海岸山脈為板塊擠壓隆起。', imgHint: '<img src="huadong.jpg" alt="未上傳 huadong.jpg">' }
     };
 
     // --- 3. 載入 SVG 與 X光透視掃描 ---
@@ -149,13 +159,11 @@
           svg.removeAttribute('width'); svg.removeAttribute('height');
 
           svg.addEventListener('click', (e) => {
-            // 防呆：拖曳時不觸發點擊
             if (Math.abs(e.clientX - downX) > 5 || Math.abs(e.clientY - downY) > 5) return;
 
             const path = e.target.closest('path');
             if (!path) return;
 
-            // X光掃描：收集被點擊區塊「本身」與「所有父圖層」的屬性，不怕代碼藏在上面
             let rawText = '';
             let curr = path;
             while(curr && curr !== svg) {
@@ -169,18 +177,21 @@
             }
             
             let regionKey = null;
-            // 掃描文字中是否包含我們的關鍵字或數字代碼 (如 63000)
-            for (const [keyword, key] of Object.entries(keywordMapping)) {
+            let exactCountyName = '';
+            
+            // 掃描文字以找出具體的行政區名稱
+            for (const [keyword, data] of Object.entries(keywordMapping)) {
               if (rawText.includes(keyword)) {
-                regionKey = key;
+                regionKey = data.key;
+                exactCountyName = data.name; // 抓取特定的縣市名
                 break;
               }
             }
 
             if (regionKey && geoData[regionKey]) {
               const data = geoData[regionKey];
-              const cleanName = cleanDisplayNames[regionKey]; // 拿取乾淨的中文顯示名稱
-              openModal({ ...data, title: `【${cleanName}】 ${data.title}` });
+              // 標題改為：【新竹市】 竹苗丘陵
+              openModal({ ...data, title: `【${exactCountyName}】 ${data.title}` });
             } else {
               openModal({
                 title: `未綁定區域`,
