@@ -1,477 +1,73 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>台灣縣市與地理地形介紹</title>
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Taiwan Map Visualization</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-        body {
-            display: flex;
-            height: 100vh;
-            background-color: #0f172a;
-            color: #f8fafc;
-            overflow: hidden;
-        }
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background-color: #f8fafc;
+      overflow: hidden;
+    }
 
-        /* 左側地圖容器 */
-        .map-container {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            background: #1e293b;
-            position: relative;
-            overflow: hidden;
-            cursor: grab;
-            user-select: none;
-        }
+    #map-container {
+      width: 100%;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
 
-        .map-container:active {
-            cursor: grabbing;
-        }
+    /* 自動套用至載入的 SVG */
+    #map-container svg {
+      width: 100%;
+      height: 100%;
+      max-width: 1440px;
+      max-height: 2055px;
+      
+      /* 方法 A：整體縮放至 80% 並以畫布中心點為基準 */
+      transform: scale(0.8);
+      transform-origin: center center;
+    }
 
-        /* 縮放與控制按鈕面板 */
-        .zoom-controls {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            z-index: 10;
-        }
-
-        .zoom-btn {
-            width: 40px;
-            height: 40px;
-            background: #334155;
-            color: #f8fafc;
-            border: 1px solid #475569;
-            border-radius: 8px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            transition: all 0.2s ease;
-        }
-
-        .zoom-btn:hover {
-            background: #0284c7;
-            border-color: #38bdf8;
-        }
-
-        /* 注入的 SVG 地圖樣式重設與控制 */
-        .map-container svg {
-            width: 100%;
-            height: 100%;
-            max-width: 900px;
-            max-height: 92vh;
-            filter: drop-shadow(0 12px 15px rgba(0, 0, 0, 0.4));
-            transform-origin: center center;
-            will-change: transform;
-        }
-
-        /* 縣市 Path hover & active 效果 */
-        .map-container path, .map-container polygon, .map-container g {
-            transition: fill 0.2s ease, stroke 0.2s ease;
-        }
-
-        .map-container path {
-            fill: #334155;
-            stroke: #64748b;
-            stroke-width: 1;
-            cursor: pointer;
-        }
-
-        .map-container path:hover {
-            fill: #38bdf8 !important;
-            stroke: #ffffff !important;
-            stroke-width: 1.5;
-        }
-
-        .map-container path.active {
-            fill: #0284c7 !important;
-            stroke: #f0f9ff !important;
-            stroke-width: 2;
-        }
-
-        /* 右側地理課本資料面板 */
-        .info-panel {
-            width: 440px;
-            background: #0f172a;
-            border-left: 1px solid #334155;
-            padding: 40px 30px;
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-            box-shadow: -8px 0 25px rgba(0, 0, 0, 0.3);
-            overflow-y: auto;
-            z-index: 20;
-        }
-
-        .info-header {
-            border-bottom: 2px solid #334155;
-            padding-bottom: 18px;
-        }
-
-        .county-title {
-            font-size: 2.2rem;
-            font-weight: 700;
-            color: #f8fafc;
-            letter-spacing: 1px;
-        }
-
-        .geo-badge {
-            display: inline-block;
-            margin-top: 12px;
-            padding: 6px 16px;
-            background-color: #0369a1;
-            color: #e0f2fe;
-            border-radius: 20px;
-            font-size: 1.05rem;
-            font-weight: 600;
-        }
-
-        .section-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #38bdf8;
-            margin-bottom: 8px;
-        }
-
-        .info-content {
-            font-size: 1.05rem;
-            line-height: 1.85;
-            color: #cbd5e1;
-            white-space: pre-line;
-        }
-
-        .placeholder-text {
-            color: #64748b;
-            text-align: center;
-            margin-top: 50%;
-            font-size: 1.15rem;
-            line-height: 1.6;
-        }
-
-        .loading {
-            position: absolute;
-            color: #94a3b8;
-            font-size: 1.2rem;
-        }
-    </style>
+    /* CSS 隱藏離島與角落畫框 (維持主島精細度) */
+    #box,
+    path[title*="連江"],
+    path[title*="金門"],
+    path[title*="澎湖"] {
+      display: none !important;
+    }
+  </style>
 </head>
 <body>
 
-    <!-- 地圖放置區 -->
-    <div class="map-container" id="map-container">
-        <!-- 放大縮放控制按鈕 -->
-        <div class="zoom-controls">
-            <button class="zoom-btn" id="btn-zoom-in" title="放大">+</button>
-            <button class="zoom-btn" id="btn-zoom-out" title="縮小">-</button>
-            <button class="zoom-btn" id="btn-reset" title="重置位置與縮放">↺</button>
-        </div>
+  <div id="map-container"></div>
 
-        <div class="loading" id="loading-text">🗺️ 正在載入 Taiwan map generated.svg ...</div>
-    </div>
-
-    <!-- 右側教科書介紹區 -->
-    <div class="info-panel">
-        <div class="placeholder-text" id="placeholder">
-            👈 請點擊地圖上的縣市區塊<br>查看地理教科書等級之地形與常見名稱介紹
-        </div>
-
-        <div id="detail-card" style="display: none;">
-            <div class="info-header">
-                <h2 class="county-title" id="county-name">-</h2>
-                <div class="geo-badge" id="geo-terrain">主要地形 / 常見名稱：-</div>
-            </div>
-            
-            <div>
-                <div class="section-title">📌 地形特徵與地理介紹</div>
-                <div class="info-content" id="description">-</div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // 國高中地理教科書標準地形與常見名稱對照表
-        const geographyDatabase = {
-            "南投縣": {
-                terrain: "埔里盆地群",
-                description: "位於台灣本島中央，為全台唯一不靠海的縣市。內部地形多山，核心聚落位於「埔里盆地群」（包含埔里、魚池、日月潭等陷落盆地）。因四周山嶺環繞、水質優良，為典型構造盆地地形代表，境內並有台灣最高峰玉山與地理中心碑。"
-            },
-            "桃園市": {
-                terrain: "桃園台地",
-                description: "主體為古石門沖積扇受地殼抬升與切割形成的「桃園台地」。地形呈階梯狀台地，由於地勢較高、河流短小缺水，早期先民開墾興建數千座「埤塘」用於農田灌溉，有「千塘之鄉」之稱，現為台灣國門之都。"
-            },
-            "臺南市": {
-                terrain: "嘉南平原（南段）",
-                description: "位於台灣最大的沖積平原「嘉南平原」核心地帶。地勢平坦開闊，土質肥沃，歷史上由八田與一興建烏山頭水庫與嘉南大圳灌溉系統，為台灣最主要的農業穀倉與歷史最悠久的古都（府城）。"
-            },
-            "雲林縣": {
-                terrain: "嘉南平原（北段） / 濁水溪沖積扇",
-                description: "地位於嘉南平原北端與濁水溪沖積扇上，地勢極為平緩。濁水溪帶來豐富的大陸沖積土，土壤肥沃，為台灣極為重要的蔬果與農業生產基地。"
-            },
-            "嘉義縣": {
-                terrain: "嘉南平原 / 阿里山山脈",
-                description: "西半部屬於平坦廣袤的嘉南平原，東半部則陡升為阿里山山脈。地勢西低東高，垂直氣候帶明顯，為台灣高山農業、森林鐵道與觀光重鎮。"
-            },
-            "嘉義市": {
-                terrain: "嘉南平原（局部） / 桃城",
-                description: "位於嘉南平原東北側的局部平原區，古稱「桃城」。早期為阿里山森林資源木材集散地與木業重鎮，現為雲嘉南地區重要文教與生活中心。"
-            },
-            "臺中市": {
-                terrain: "台中盆地 / 大甲溪沖積扇",
-                description: "核心市區位於「台中盆地」，西側隔大肚台地與海岸平原相望，東側則延伸至雪山山脈（大甲溪與大安溪流域）。盆地內氣候溫和、四季宜人，為中台灣地區的經濟與文化核心。"
-            },
-            "彰化縣": {
-                terrain: "彰化平原 / 八卦台地",
-                description: "主體為濁水溪沖積形成的「彰化平原」，東側界以陡峭的「八卦台地」。地勢極為平坦，為中台灣重要糧倉與花卉蔬菜產區，鹿港則保留古老港埠文化。"
-            },
-            "苗栗縣": {
-                terrain: "苗栗丘陵 / 苗栗山城",
-                description: "地勢以「苗栗丘陵」與台地山陵為主，山多平原少，故有「山城」之稱。地形切割劇烈，林業與樟腦業歷史悠久，客家文化底蘊深厚。"
-            },
-            "新竹縣": {
-                terrain: "竹東丘陵 / 新竹台地",
-                description: "地形由海側的台地丘陵漸次升為雪山山脈，包含竹東丘陵與頭前溪沖積扇。山丘交錯，鳳山溪與頭前溪流經其間，為典型客家聚落與農業山城。"
-            },
-            "新竹市": {
-                terrain: "新竹平原 / 竹塹風城",
-                description: "位於頭前溪與客雅溪沖積形成的「新竹平原」。因地形受兩側丘陵收攏影響，形成風口效應，冬季東北季風極強，故有「風城」之稱，現為高科技產業重鎮。"
-            },
-            "臺北市": {
-                terrain: "台北盆地",
-                description: "位於「台北盆地」中央，由淡水河三大支流（基隆河、新店溪、大漢溪）匯流沖積而成。四周由大屯火山群、觀音山與雪山山脈餘脈環繞，為台灣政治、經濟與文化首善之區。"
-            },
-            "新北市": {
-                terrain: "台北盆地外緣 / 觀音山 / 丘陵海岸",
-                description: "地形極為豐富，環繞台北盆地外圍，包含觀音山火山區、東北角褶皺海岸、新店丘陵與淡水河口。兼具山城（九份、平溪）與海岸地形。"
-            },
-            "基隆市": {
-                terrain: "基隆港灣 / 谷灣海岸",
-                description: "位於台灣東北角，地形為典型沉水形成的「谷灣海岸」。三面環山、一面臨海，天然港灣條件優良，因位處迎風面全年多雨，故稱為「雨港」。"
-            },
-            "宜蘭縣": {
-                terrain: "蘭陽平原",
-                description: "由蘭陽溪沖積形成的三角形「蘭陽平原」，三面環山（雪山山脈與中央山脈）、一面前臨太平洋，外海有火山島龜山島，屬相對封閉且自成體系的地理區域。"
-            },
-            "屏東縣": {
-                terrain: "屏東平原 / 恆春半島",
-                description: "北部為高屏溪沖積形成的廣大「屏東平原」，南部延伸為「恆春半島」。受台地、高位珊瑚礁地形與熱帶季風影響，落山風極強，包含墾丁國家公園。"
-            },
-            "高雄市": {
-                terrain: "高雄平原 / 高雄港灣 / 壽山珊瑚礁",
-                description: "地形橫跨高山（玉山山脈尾稜）、丘陵、高雄平原與潟湖港灣（高雄港）。壽山與半屏山為隆起珊瑚礁石灰岩地形，為南部最大港都與工業重鎮。"
-            },
-            "花蓮縣": {
-                terrain: "花東縱谷 / 太魯閣大理岩峽谷",
-                description: "位處板塊交界處，夾於中央山脈與海岸山脈之間，形成狹長的「花東縱谷」。立霧溪強烈侵蝕下切，形成世界級的大理岩高山深度峽谷（太魯閣峽谷）。"
-            },
-            "臺東縣": {
-                terrain: "花東縱谷（南段） / 海岸山脈",
-                description: "擁有花東縱谷南段與綿長的太平洋海岸線，河階地形與海階地形（如小野柳）極為發達。轄有綠島與蘭嶼兩座火山島。"
-            },
-            "澎湖縣": {
-                terrain: "澎湖方山 / 柱狀玄武岩",
-                description: "由板塊張裂火山噴發形成的火山群島，地形多為平坦的「方山台地」。擁有世界級的柱狀玄武岩地質景觀、珊瑚礁（石滬）與發達的海蝕地形。"
-            },
-            "金門縣": {
-                terrain: "花崗岩方山 / 花崗片麻岩",
-                description: "位於廈門灣口，地質主體為花崗片麻岩與花崗岩構成之低矮方山丘陵。海岸紅土台地發達，因地處前線，擁有極為豐富的戰地與閩南古厝文化。"
-            },
-            "連江縣": {
-                terrain: "馬祖列島 / 花崗岩沉水海岸",
-                description: "位於閩江口外海，為典型大陸島與花崗岩沉水地形。島嶼山多平地少，海岸線曲折且崖壁陡峭，擁有極為獨特的花崗岩海蝕洞、花崗岩石屋與「藍眼淚」現象。"
-            }
-        };
-
-        const mapContainer = document.getElementById('map-container');
-        const loadingText = document.getElementById('loading-text');
-        const placeholder = document.getElementById('placeholder');
-        const detailCard = document.getElementById('detail-card');
-        const countyNameEl = document.getElementById('county-name');
-        const geoTerrainEl = document.getElementById('geo-terrain');
-        const descriptionEl = document.getElementById('description');
-
-        // 縮放與拖曳變數控制
-        let scale = 1;
-        let translateX = 0;
-        let translateY = 0;
-        let isDragging = false;
-        let startX = 0, startY = 0;
-        let hasDragged = false; // 用於區分「純點擊」還是「拖曳移動」
-
-        // 讀取 SVG 檔案
-        fetch('Taiwan map generated.svg')
-            .then(res => {
-                if (!res.ok) throw new Error("無法找到 Taiwan map generated.svg");
-                return res.text();
-            })
-            .then(svgText => {
-                loadingText.remove();
-                mapContainer.insertAdjacentHTML('beforeend', svgText);
-                initPanZoom();
-                bindSvgEvents();
-            })
-            .catch(() => {
-                fetch('taiwan.svg')
-                    .then(res => res.text())
-                    .then(svgText => {
-                        loadingText.remove();
-                        mapContainer.insertAdjacentHTML('beforeend', svgText);
-                        initPanZoom();
-                        bindSvgEvents();
-                    })
-                    .catch(() => {
-                        loadingText.innerHTML = "❌ 找不到地圖檔案！<br>請確認檔名為 <b>Taiwan map generated.svg</b> 並放在同一個資料夾內。";
-                    });
-            });
-
-        // 初始化拖曳與縮放控制
-        function initPanZoom() {
-            const svg = mapContainer.querySelector('svg');
-            if (!svg) return;
-
-            function applyTransform() {
-                svg.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
-            }
-
-            // 1. 滑鼠滾輪縮放
-            mapContainer.addEventListener('wheel', (e) => {
-                e.preventDefault();
-                const zoomFactor = 1.15;
-                if (e.deltaY < 0) {
-                    scale = Math.min(scale * zoomFactor, 8); // 最大放 8 倍
-                } else {
-                    scale = Math.max(scale / zoomFactor, 1); // 最小 1 倍
-                    if (scale === 1) {
-                        translateX = 0;
-                        translateY = 0;
-                    }
-                }
-                applyTransform();
-            }, { passive: false });
-
-            // 2. 按住滑鼠拖曳移動
-            mapContainer.addEventListener('mousedown', (e) => {
-                if (e.button !== 0) return; // 僅限左鍵
-                isDragging = true;
-                hasDragged = false;
-                startX = e.clientX - translateX;
-                startY = e.clientY - translateY;
-            });
-
-            window.addEventListener('mousemove', (e) => {
-                if (!isDragging) return;
-                const currentX = e.clientX - startX;
-                const currentY = e.clientY - startY;
-
-                // 如果移動距離超過 5px，認定為拖曳狀態，避免誤觸縣市點擊
-                if (Math.abs(currentX - translateX) > 5 || Math.abs(currentY - translateY) > 5) {
-                    hasDragged = true;
-                }
-
-                translateX = currentX;
-                translateY = currentY;
-                applyTransform();
-            });
-
-            window.addEventListener('mouseup', () => {
-                isDragging = false;
-            });
-
-            // 3. UI 控制按鈕綁定
-            document.getElementById('btn-zoom-in').onclick = () => {
-                scale = Math.min(scale * 1.3, 8);
-                applyTransform();
-            };
-
-            document.getElementById('btn-zoom-out').onclick = () => {
-                scale = Math.max(scale / 1.3, 1);
-                if (scale === 1) { translateX = 0; translateY = 0; }
-                applyTransform();
-            };
-
-            document.getElementById('btn-reset').onclick = () => {
-                scale = 1;
-                translateX = 0;
-                translateY = 0;
-                applyTransform();
-            };
+  <script>
+    // 自動讀取同目錄下的原版 SVG 檔案
+    fetch('Taiwan map labeled.svg')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('找不到 Taiwan map labeled.svg 檔案');
         }
-
-        // 自動匹配 SVG 內部的縣市名稱與點擊監聽
-        function bindSvgEvents() {
-            const allElements = mapContainer.querySelectorAll('path, polygon, g[id]');
-
-            allElements.forEach(el => {
-                let name = el.getAttribute('title') || 
-                           el.getAttribute('data-name') || 
-                           el.getAttribute('id') || '';
-
-                const titleNode = el.querySelector('title');
-                if (titleNode) name = titleNode.textContent.trim();
-
-                const matchedCounty = identifyCounty(name);
-
-                if (matchedCounty) {
-                    el.style.cursor = 'pointer';
-                    el.addEventListener('click', (e) => {
-                        // 如果剛剛是在拖曳地圖，不要觸發縣市選取
-                        if (hasDragged) return;
-
-                        e.stopPropagation();
-                        
-                        // 清除前次高亮
-                        mapContainer.querySelectorAll('.active').forEach(a => a.classList.remove('active'));
-                        el.classList.add('active');
-
-                        displayInfo(matchedCounty);
-                    });
-                }
-            });
-        }
-
-        // 模糊匹配名稱
-        function identifyCounty(rawStr) {
-            if (!rawStr) return null;
-            for (let county in geographyDatabase) {
-                let shortName = county.replace('臺', '台').replace('市', '').replace('縣', '');
-                let altCounty = county.replace('臺', '台');
-                
-                if (rawStr.includes(county) || rawStr.includes(altCounty) || rawStr.includes(shortName)) {
-                    return county;
-                }
-            }
-            if (rawStr.includes('馬祖')) return '連江縣';
-            return null;
-        }
-
-        // 呈現右側資料
-        function displayInfo(countyKey) {
-            const data = geographyDatabase[countyKey];
-            if (!data) return;
-
-            placeholder.style.display = 'none';
-            detailCard.style.display = 'block';
-
-            countyNameEl.textContent = countyKey;
-            geoTerrainEl.textContent = `主要地形 / 常見名稱：${data.terrain}`;
-            descriptionEl.textContent = data.description;
-        }
-    </script>
+        return response.text();
+      })
+      .then(svgText => {
+        document.getElementById('map-container').innerHTML = svgText;
+      })
+      .catch(error => {
+        console.error('SVG 載入錯誤:', error);
+      });
+  </script>
 </body>
 </html>
