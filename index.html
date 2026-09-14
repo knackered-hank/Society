@@ -1,326 +1,350 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>臺灣五大地形 課堂出拳挑戰賽</title>
-    <style>
-        * {
-            box-sizing: border-box;
-            font-family: "Microsoft JhengHei", "PingFang TC", sans-serif;
-        }
-        body {
-            background-color: #f1f5f9;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        h1 {
-            color: #0f172a;
-            font-size: 2.2rem;
-            margin-bottom: 5px;
-        }
-        .subtitle {
-            font-size: 1.2rem;
-            color: #dc2626;
-            font-weight: bold;
-            margin-bottom: 20px;
-            height: 30px;
-            text-align: center;
-        }
-        .main-layout {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 25px;
-            justify-content: center;
-            align-items: flex-start;
-            max-width: 1050px;
-            width: 100%;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>臺灣地形大挑戰：看題出拳！</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
 
-        /* 地圖容器 */
-        .map-card {
-            background: #ffffff;
-            border-radius: 20px;
-            padding: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
-            position: relative;
-            width: 440px;
-            height: 600px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-        }
-        
-        svg.taiwan-map {
-            width: 100%;
-            height: 100%;
-            background-color: #f0fdf4;
-            border-radius: 12px;
-        }
+    body {
+      background-color: #f1f5f9;
+      color: #334155;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
 
-        /* 行政區向量曲線樣式 (啟用圓角連接與幾何平滑) */
-        .county {
-            fill: #cbd5e1;
-            stroke: #ffffff;
-            stroke-width: 1.8;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-            shape-rendering: geometricPrecision;
-            cursor: pointer;
-            transition: fill 0.25s ease, stroke 0.25s ease, filter 0.25s ease;
-        }
+    .container {
+      width: 100%;
+      max-width: 960px;
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+      padding: 32px;
+    }
 
-        /* 滑鼠懸停：圓滑邊界發光 (完全固定不跳動) */
-        .county:hover {
-            fill: #2563eb;
-            stroke: #bfdbfe;
-            stroke-width: 2.8;
-            filter: drop-shadow(0px 0px 10px rgba(37, 99, 235, 0.8));
-        }
+    header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
 
-        /* 右側儀表板 */
-        .dashboard {
-            flex: 1;
-            min-width: 320px;
-            background: white;
-            border-radius: 20px;
-            padding: 25px 30px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-        }
-        .timer-box {
-            font-size: 5.5rem;
-            font-weight: 900;
-            color: #ef4444;
-            margin: 10px 0;
-            line-height: 1;
-        }
-        .btn-timer {
-            background-color: #2563eb;
-            color: white;
-            border: none;
-            padding: 14px 28px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-        }
-        .btn-timer:hover {
-            background-color: #1d4ed8;
-            transform: translateY(-2px);
-        }
+    h1 {
+      font-size: 1.8rem;
+      color: #1e293b;
+      margin-bottom: 8px;
+    }
 
-        .legend-box {
-            margin-top: 25px;
-            width: 100%;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            text-align: left;
-            font-size: 0.9rem;
-            background: #f8fafc;
-            padding: 15px;
-            border-radius: 12px;
-        }
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-weight: bold;
-            color: #334155;
-        }
+    .subtitle {
+      font-size: 0.95rem;
+      color: #ef4444;
+      font-weight: 500;
+    }
 
-        /* 答案 Modal 彈窗 */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15, 23, 42, 0.65);
-            backdrop-filter: blur(4px);
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        .modal-content {
-            background: white;
-            width: 90%;
-            max-width: 520px;
-            border-radius: 24px;
-            padding: 25px 30px;
-            position: relative;
-            animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            text-align: center;
-        }
-        @keyframes popIn {
-            from { transform: scale(0.85); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-        }
-        .close-btn {
-            position: absolute;
-            top: 15px; right: 20px;
-            font-size: 2rem;
-            cursor: pointer;
-            color: #94a3b8;
-        }
-        .close-btn:hover { color: #0f172a; }
-        .badge {
-            display: inline-block;
-            background: #ef4444;
-            color: white;
-            font-size: 1.3rem;
-            font-weight: bold;
-            padding: 6px 18px;
-            border-radius: 30px;
-            margin-bottom: 8px;
-        }
-        .gesture-hint {
-            font-size: 1.2rem;
-            color: #1d4ed8;
-            font-weight: bold;
-            background: #eff6ff;
-            padding: 8px;
-            border-radius: 10px;
-            margin-bottom: 12px;
-        }
-        .explanation {
-            font-size: 1rem;
-            color: #334155;
-            line-height: 1.6;
-            text-align: left;
-            background: #f8fafc;
-            padding: 12px 15px;
-            border-radius: 10px;
-        }
-    </style>
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    @media (max-width: 768px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* 地圖卡片區域 */
+    .map-card {
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 480px;
+      border: 1px solid #e2e8f0;
+      position: relative;
+    }
+
+    svg.map {
+      width: 100%;
+      height: 440px;
+      filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.05));
+    }
+
+    .region {
+      fill: #cbd5e1;
+      stroke: #ffffff;
+      stroke-width: 2.5;
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+
+    .region:hover {
+      fill: #3b82f6;
+      filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.8));
+      transform: translateY(-2px);
+    }
+
+    .region.selected {
+      fill: #2563eb;
+    }
+
+    /* 右側控制面板 */
+    .control-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+    }
+
+    .timer-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #475569;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .timer-display {
+      font-size: 4rem;
+      font-weight: 800;
+      color: #ef4444;
+      line-height: 1;
+      margin-bottom: 16px;
+      height: 70px;
+      display: flex;
+      align-items: center;
+    }
+
+    .btn-start {
+      background-color: #2563eb;
+      color: #ffffff;
+      border: none;
+      padding: 12px 28px;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.2s, transform 0.1s;
+      width: 100%;
+      max-width: 240px;
+    }
+
+    .btn-start:hover {
+      background-color: #1d4ed8;
+    }
+
+    .btn-start:active {
+      transform: scale(0.98);
+    }
+
+    .instruction {
+      margin-top: 16px;
+      font-size: 0.85rem;
+      color: #64748b;
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    /* 手勢指南圖例 */
+    .gesture-box {
+      margin-top: 24px;
+      width: 100%;
+      background: #f8fafc;
+      border-radius: 8px;
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 16px;
+      font-size: 0.88rem;
+      border: 1px solid #f1f5f9;
+    }
+
+    .gesture-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #334155;
+    }
+
+    .gesture-item strong {
+      color: #0f172a;
+    }
+
+    /* 答案顯示浮報彈窗 */
+    .result-banner {
+      margin-top: 20px;
+      width: 100%;
+      padding: 12px 16px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      text-align: center;
+      color: #1e40af;
+      font-weight: 600;
+      display: none;
+    }
+
+    .result-banner.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
 </head>
 <body>
 
-    <h1>🗺️ 臺灣地形大挑戰：看題出拳！</h1>
-    <div class="subtitle" id="hover-status">將滑鼠移至縣市區域檢視高亮發光效果...</div>
+  <div class="container">
+    <header>
+      <h1>臺灣地形大挑戰：看題出拳！</h1>
+      <p class="subtitle">將滑鼠移至縣市區域檢視高亮發光效果...</p>
+    </header>
 
-    <div class="main-layout">
-        <div class="map-card">
-            <svg class="taiwan-map" viewBox="0 0 440 600">
-                <!-- 全臺灣 22 行政區貝茲平滑曲線路徑（無棱角、免連網） -->
-                <g id="counties-group">
-                    <path class="county" data-name="基隆市" data-lf="丘陵 / 港灣" data-gest="〰️ 掌心微波" data-desc="基隆多山丘陵與港灣地形，平地極少。" d="M 320,38 C 328,32 338,36 338,44 C 338,52 328,54 322,48 C 318,44 316,40 320,38 Z"/>
-                    <path class="county" data-name="臺北市" data-lf="臺北盆地" data-gest="🥣 雙手捧碗" data-desc="四周被山脈包圍，中央地勢低平，為典型的盆地。" d="M 295,50 C 308,40 322,46 320,62 C 318,74 300,72 292,58 C 290,52 292,50 295,50 Z"/>
-                    <path class="county" data-name="新北市" data-lf="丘陵 / 台地 / 盆地" data-gest="〰️ 掌心微波" data-desc="地形豐富，包含林口台地、淡水河口平原與北部丘陵。" d="M 272,28 C 300,16 345,20 355,45 C 362,70 338,85 310,90 C 282,94 268,75 272,50 C 282,48 295,50 295,50 C 292,58 300,72 318,74 C 320,62 308,40 295,50 C 282,48 272,28 272,28 Z"/>
-                    <path class="county" data-name="桃園市" data-lf="桃園台地" data-gest="凸 T字手勢" data-desc="地勢平坦高陡，古時候開闢許多埤塘進行灌溉。" d="M 240,55 C 262,45 272,28 272,50 C 268,75 258,98 232,88 C 225,75 230,62 240,55 Z"/>
-                    <path class="county" data-name="新竹市" data-lf="平原 / 台地" data-gest="🖐️ 雙手對接" data-desc="頭前溪沖積成的平原，風勢強勁稱風城。" d="M 222,80 C 230,78 236,82 234,90 C 226,92 220,88 222,80 Z"/>
-                    <path class="county" data-name="新竹縣" data-lf="新竹丘陵 / 台地" data-gest="〰️ 掌心微波" data-desc="多丘陵與台地地形，盛產茶葉與柑橘。" d="M 232,88 C 258,98 252,122 220,112 C 212,100 218,92 222,80 C 226,92 234,90 C 236,82 230,78 222,80 C 218,92 232,88 232,88 Z"/>
-                    <path class="county" data-name="苗栗縣" data-lf="苗栗丘陵" data-gest="〰️ 掌心微波" data-desc="地形以丘陵為主，稱為山城，地形起伏連綿。" d="M 195,110 C 212,100 252,122 240,152 C 218,154 188,138 195,110 Z"/>
-                    <path class="county" data-name="臺中市" data-lf="臺中盆地 / 台地" data-gest="🥣 雙手捧碗" data-desc="西有大肚台地，東有臺中盆地與雪山山脈餘脈。" d="M 172,142 C 188,138 240,152 276,168 C 248,188 218,192 165,172 C 162,158 168,148 172,142 Z"/>
-                    <path class="county" data-name="彰化縣" data-lf="彰化平原" data-gest="🖐️ 雙手對接" data-desc="濁水溪沖積平原，地勢平坦，是臺灣的糧倉之一。" d="M 148,175 C 165,172 185,208 155,218 C 140,208 140,185 148,175 Z"/>
-                    <path class="county" data-name="南投縣" data-lf="埔里盆地 / 中央山脈" data-gest="🥣 雙手捧碗" data-desc="唯一不臨海縣市，境內包含埔里盆地群與百岳高山。" d="M 218,192 C 276,168 270,248 205,270 C 180,248 185,208 218,192 Z"/>
-                    <path class="county" data-name="雲林縣" data-lf="嘉南平原" data-gest="🖐️ 雙手對接" data-desc="廣大的農業平原，地勢極為平坦。" d="M 128,218 C 155,218 185,208 175,252 C 148,258 122,248 128,218 Z"/>
-                    <path class="county" data-name="嘉義市" data-lf="嘉南平原" data-gest="🖐️ 雙手對接" data-desc="位於嘉南平原中央的都市。" d="M 146,260 C 154,258 158,265 150,270 C 143,268 142,262 146,260 Z"/>
-                    <path class="county" data-name="嘉義縣" data-lf="嘉南平原 / 阿里山山脈" data-gest="🖐️ 雙手對接" data-desc="西半部為平原，東半部為高聳的阿里山山脈。" d="M 122,248 C 175,252 205,270 188,300 C 152,302 115,285 122,248 Z"/>
-                    <path class="county" data-name="臺南市" data-lf="嘉南平原" data-gest="🖐️ 雙手對接" data-desc="古老的台江內海演變成今日廣大的平原與潟湖。" d="M 108,288 C 115,285 188,300 170,350 C 138,355 100,335 108,288 Z"/>
-                    <path class="county" data-name="高雄市" data-lf="平原 / 丘陵 / 玉山山脈" data-gest="🖐️ 雙手對接" data-desc="地形多元，東北高山起伏，西南為廣大平原港灣。" d="M 170,350 C 188,300 205,270 242,292 C 218,362 198,395 132,408 C 100,335 170,350 170,350 Z"/>
-                    <path class="county" data-name="屏東縣" data-lf="屏東平原 / 恆春半島" data-gest="🖐️ 雙手對接" data-desc="包含屏東平原與最南端丘陵台地組成的恆春半島。" d="M 132,408 C 198,395 212,442 182,538 C 165,558 152,542 138,462 C 130,432 132,408 132,408 Z"/>
-                    <path class="county" data-name="宜蘭縣" data-lf="宜蘭平原 (蘭陽平原)" data-gest="🖐️ 雙手對接" data-desc="三面環山一面臨海，蘭陽溪沖積形成三角洲平原。" d="M 310,88 C 335,82 350,108 308,165 C 276,168 252,122 258,98 C 270,78 310,88 310,88 Z"/>
-                    <path class="county" data-name="花蓮縣" data-lf="中央山脈 / 海岸山脈 / 花東縱谷" data-gest="⛰️ 雙手合十" data-desc="夾在兩大山脈之間的縱谷地形，山高谷深。" d="M 276,168 C 308,165 290,292 242,292 C 205,270 270,248 276,168 Z"/>
-                    <path class="county" data-name="臺東縣" data-lf="花東縱谷 / 海岸山脈" data-gest="⛰️ 雙手合十" data-desc="海岸線綿長，縱谷平原延伸至東海岸。" d="M 242,292 C 290,292 248,442 212,442 C 198,395 218,362 242,292 Z"/>
-                    <path class="county" data-name="澎湖縣" data-lf="玄武岩方山 (台地)" data-gest="凸 T字手勢" data-desc="由火山噴發玄武岩構成的平坦方山台地群。" d="M 52,270 C 42,250 62,235 68,260 C 65,280 48,285 52,270 Z"/>
-                    <path class="county" data-name="金門縣" data-lf="花崗岩丘陵" data-gest="〰️ 掌心微波" data-desc="古老花崗岩構成的丘陵與平坦台地。" d="M 28,165 C 35,158 48,155 45,172 C 38,175 25,172 28,165 Z"/>
-                    <path class="county" data-name="連江縣 (馬祖)" data-lf="花崗岩丘陵" data-gest="〰️ 掌心微波" data-desc="谷灣式海岸與花崗岩丘陵群。" d="M 38,62 C 45,55 55,58 50,68 C 42,72 35,68 38,62 Z"/>
-                </g>
-            </svg>
+    <div class="main-grid">
+      <!-- 左側 SVG 地圖 -->
+      <div class="map-card">
+        <svg class="map" viewBox="0 0 300 500">
+          <!-- 台北盆地 -->
+          <path class="region" data-name="臺北盆地" data-type="盆地" data-gesture="雙手捧碗" d="M165,60 L185,50 L195,65 L180,80 L160,75 Z"/>
+          <!-- 桃園台地 -->
+          <polygon class="region" data-name="桃園台地" data-type="台地" data-gesture="T字手勢" points="135,70 160,65 155,90 130,95"/>
+          <!-- 雪山/中央山脈 (山地) -->
+          <polygon class="region" data-name="中央山脈" data-type="山地" data-gesture="雙手合十" points="160,100 185,110 175,230 150,250 145,170"/>
+          <!-- 竹苗丘陵 -->
+          <polygon class="region" data-name="竹苗丘陵" data-type="丘陵" data-gesture="掌心微波" points="120,95 145,90 140,140 115,130"/>
+          <!-- 台中盆地 -->
+          <polygon class="region" data-name="臺中盆地" data-type="盆地" data-gesture="雙手捧碗" points="125,150 145,145 140,180 120,175"/>
+          <!-- 彰化平原 -->
+          <polygon class="region" data-name="彰化平原" data-type="平原" data-gesture="雙手對接" points="100,165 120,160 115,200 95,190"/>
+          <!-- 嘉南平原 -->
+          <polygon class="region" data-name="嘉南平原" data-type="平原" data-gesture="雙手對接" points="90,200 125,200 120,310 75,280"/>
+          <!-- 埔里盆地群 -->
+          <polygon class="region" data-name="埔里盆地" data-type="盆地" data-gesture="雙手捧碗" points="145,185 160,180 160,205 145,200"/>
+          <!-- 阿里山山脈 -->
+          <polygon class="region" data-name="阿里山山脈" data-type="山地" data-gesture="雙手合十" points="125,210 140,210 135,270 120,260"/>
+          <!-- 高屏平原 -->
+          <polygon class="region" data-name="屏東平原" data-type="平原" data-gesture="雙手對接" points="100,320 125,310 130,390 110,400"/>
+          <!-- 恒春丘陵 -->
+          <polygon class="region" data-name="恆春丘陵" data-type="丘陵" data-gesture="掌心微波" points="125,400 140,390 135,440 120,430"/>
+          <!-- 宜蘭平原 -->
+          <polygon class="region" data-name="宜蘭平原" data-type="平原" data-gesture="雙手對接" points="190,80 215,85 205,110 185,100"/>
+          <!-- 花東縱谷平原 -->
+          <polygon class="region" data-name="花東縱谷平原" data-type="平原" data-gesture="雙手對接" points="180,180 190,180 175,320 165,310"/>
+          <!-- 海岸山脈 -->
+          <polygon class="region" data-name="海岸山脈" data-type="山地" data-gesture="雙手合十" points="192,175 205,180 190,320 178,315"/>
+        </svg>
+      </div>
+
+      <!-- 右側 控制與手勢面板 -->
+      <div class="control-card">
+        <div class="timer-title">
+          <span>⏱️</span> 倒數出拳計時器
+        </div>
+        
+        <div class="timer-display" id="timer">5</div>
+
+        <button class="btn-start" id="startBtn" onclick="startTimer()">▶ 開始 5 秒倒數</button>
+
+        <p class="instruction">
+          先按開始倒數！歸零時手勢定格！<br>
+          點擊地圖揭曉該地形答案！
+        </p>
+
+        <div class="result-banner" id="resultBanner">
+          請點擊地圖上的區域驗證答案
         </div>
 
-        <div class="dashboard">
-            <h2 style="margin: 0; color: #0f172a;">⏱️ 倒數出拳計時器</h2>
-            <div class="timer-box" id="timer">5</div>
-            <button class="btn-timer" onclick="startTimer()">▶️ 開始 5 秒倒數</button>
-            <p style="color: #64748b; margin-top: 15px; font-size: 0.95rem;">
-                先按開始倒數！歸零時手勢定格！<br>點擊地圖揭曉該區地形答案！
-            </p>
-
-            <div class="legend-box">
-                <div class="legend-item">🥣 盆地：雙手捧碗</div>
-                <div class="legend-item">凸 台地：T字手勢</div>
-                <div class="legend-item">〰️ 丘陵：掌心微波</div>
-                <div class="legend-item">🖐️ 平原：雙手對接</div>
-                <div class="legend-item">⛰️ 山地：雙手合十</div>
-            </div>
+        <div class="gesture-box">
+          <div class="gesture-item">
+            <span>🥣</span> <strong>盆地：</strong>雙手捧碗
+          </div>
+          <div class="gesture-item">
+            <span>凸</span> <strong>台地：</strong>T字手勢
+          </div>
+          <div class="gesture-item">
+            <span>〰️</span> <strong>丘陵：</strong>掌心微波
+          </div>
+          <div class="gesture-item">
+            <span>🌾</span> <strong>平原：</strong>雙手對接
+          </div>
+          <div class="gesture-item" style="grid-column: span 2;">
+            <span>⛰️</span> <strong>山地：</strong>雙手合十
+          </div>
         </div>
+      </div>
     </div>
+  </div>
 
-    <!-- 揭曉答案 Modal 彈窗 -->
-    <div class="modal-overlay" id="modal">
-        <div class="modal-content">
-            <span class="close-btn" onclick="closeCard()">&times;</span>
-            <h2 id="m-title" style="margin: 5px 0 10px 0; color: #0f172a;">地區名稱</h2>
-            <div><span class="badge" id="m-landform">地形類別</span></div>
-            <div class="gesture-hint" id="m-gesture">手勢：--</div>
-            <div class="explanation" id="m-desc">解釋說明載入中...</div>
-        </div>
-    </div>
+  <script>
+    let timerElement = document.getElementById('timer');
+    let startBtn = document.getElementById('startBtn');
+    let resultBanner = document.getElementById('resultBanner');
+    let regions = document.querySelectorAll('.region');
+    
+    let countdown = 5;
+    let timerId = null;
 
-    <script>
-        const counties = document.querySelectorAll('.county');
-        const hoverStatus = document.getElementById('hover-status');
+    function startTimer() {
+      if (timerId !== null) clearInterval(timerId);
+      
+      countdown = 5;
+      timerElement.textContent = countdown;
+      timerElement.style.color = '#ef4444';
+      startBtn.disabled = true;
+      startBtn.style.opacity = '0.6';
+      resultBanner.classList.remove('active');
 
-        counties.forEach(county => {
-            county.addEventListener('mouseenter', (e) => {
-                const name = e.target.getAttribute('data-name');
-                if (name) {
-                    hoverStatus.innerText = `👉 目前選擇：【${name}】`;
-                }
-            });
-
-            county.addEventListener('mouseleave', () => {
-                hoverStatus.innerText = '將滑鼠移至縣市區域檢視高亮發光效果...';
-            });
-
-            county.addEventListener('click', (e) => {
-                const name = e.target.getAttribute('data-name');
-                const landform = e.target.getAttribute('data-lf');
-                const gesture = e.target.getAttribute('data-gest');
-                const desc = e.target.getAttribute('data-desc');
-                openCard(name, landform, gesture, desc);
-            });
-        });
-
-        function openCard(name, landform, gesture, desc) {
-            document.getElementById('m-title').innerText = name;
-            document.getElementById('m-landform').innerText = landform;
-            document.getElementById('m-gesture').innerText = `出拳手勢：${gesture}`;
-            document.getElementById('m-desc').innerHTML = `<b>地形特徵：</b>${desc}`;
-            document.getElementById('modal').style.display = 'flex';
+      timerId = setInterval(() => {
+        countdown--;
+        if (countdown > 0) {
+          timerElement.textContent = countdown;
+        } else {
+          clearInterval(timerId);
+          timerId = null;
+          timerElement.textContent = '定格！';
+          timerElement.style.color = '#22c55e';
+          startBtn.disabled = false;
+          startBtn.style.opacity = '1';
+          
+          resultBanner.textContent = '⏱️ 時間到！請比好手勢並點擊地圖揭曉答案！';
+          resultBanner.classList.add('active');
         }
+      }, 1000);
+    }
 
-        function closeCard() {
-            document.getElementById('modal').style.display = 'none';
-        }
+    // 地圖區域點擊互動 logic
+    regions.forEach(region => {
+      region.addEventListener('click', function() {
+        regions.forEach(r => r.classList.remove('selected'));
+        this.classList.add('selected');
 
-        let timerInterval;
-        function startTimer() {
-            let count = 5;
-            const timerEl = document.getElementById('timer');
-            timerEl.innerText = count;
-            
-            clearInterval(timerInterval);
-            timerInterval = setInterval(() => {
-                count--;
-                if (count > 0) {
-                    timerEl.innerText = count;
-                } else {
-                    timerEl.innerText = "定格！";
-                    clearInterval(timerInterval);
-                }
-            }, 1000);
-        }
-    </script>
+        const name = this.getAttribute('data-name');
+        const type = this.getAttribute('data-type');
+        const gesture = this.getAttribute('data-gesture');
+
+        resultBanner.innerHTML = `📍 <strong>${name}</strong><br>地形：<span style="color:#2563eb;">${type}</span>（手勢：${gesture}）`;
+        resultBanner.classList.add('active');
+      });
+    });
+  </script>
 </body>
 </html>
