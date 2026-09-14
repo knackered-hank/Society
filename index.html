@@ -17,7 +17,7 @@
     #map-container { width: 100%; height: 100%; transform-origin: 0 0; }
     svg { width: 100%; height: 100%; object-fit: contain; }
 
-    /* 強制穿透阻礙：讓 SVG 內所有隱藏元素失去點擊判定 */
+    /* 強制穿透：讓 SVG 內所有隱藏元素失去點擊判定 */
     svg * { pointer-events: none !important; }
     
     /* 只有行政區塊允許被點擊 */
@@ -31,7 +31,12 @@
       filter: drop-shadow(0 0 12px rgba(252, 211, 77, 0.8));
     }
     
-    text, #box, path[title*="連江"], path[title*="金門"], path[title*="澎湖"] { display: none !important; }
+    /* 隱藏離島 (支援中文與行政代碼 10016澎湖, 09020金門, 09007連江) */
+    text, #box, 
+    path[title*="連江"], path[title*="金門"], path[title*="澎湖"],
+    path[id*="09007"], path[id*="09020"], path[id*="10016"] { 
+      display: none !important; 
+    }
 
     /* 解答彈出視窗 */
     #modal-overlay {
@@ -89,19 +94,26 @@
   <div class="hint">👆 點擊地圖區塊顯示地形・滾輪縮放・按住拖曳</div>
 
   <script>
-    // --- 1. 智慧模糊比對 (只要抓到關鍵字就成功配對) ---
+    // --- 1. 終極比對庫 (同時包含中文關鍵字與內政部行政區數字代碼) ---
     const keywordMapping = {
-      '基隆': 'keelung',
-      '臺北': 'taipei', '台北': 'taipei', '新北': 'taipei',
-      '桃園': 'taoyuan',
-      '新竹': 'zhumiao', '苗栗': 'zhumiao',
-      '臺中': 'taichung', '台中': 'taichung',
-      '彰化': 'changhua',
-      '南投': 'nantou',
-      '雲林': 'jianan', '嘉義': 'jianan', '臺南': 'jianan', '台南': 'jianan',
-      '高雄': 'kaoping', '屏東': 'kaoping',
-      '宜蘭': 'yilan',
-      '花蓮': 'huadong', '臺東': 'huadong', '台東': 'huadong'
+      '基隆': 'keelung', '10017': 'keelung',
+      '臺北': 'taipei', '台北': 'taipei', '新北': 'taipei', '63000': 'taipei', '65000': 'taipei',
+      '桃園': 'taoyuan', '68000': 'taoyuan',
+      '新竹': 'zhumiao', '苗栗': 'zhumiao', '10018': 'zhumiao', '10004': 'zhumiao', '10005': 'zhumiao',
+      '臺中': 'taichung', '台中': 'taichung', '66000': 'taichung',
+      '彰化': 'changhua', '10007': 'changhua',
+      '南投': 'nantou', '10008': 'nantou',
+      '雲林': 'jianan', '嘉義': 'jianan', '臺南': 'jianan', '台南': 'jianan', '10009': 'jianan', '10010': 'jianan', '10020': 'jianan', '67000': 'jianan',
+      '高雄': 'kaoping', '屏東': 'kaoping', '64000': 'kaoping', '10013': 'kaoping',
+      '宜蘭': 'yilan', '10002': 'yilan',
+      '花蓮': 'huadong', '臺東': 'huadong', '台東': 'huadong', '10015': 'huadong', '10014': 'huadong'
+    };
+
+    // 視窗顯示用的乾淨名稱 (過濾掉醜陋的代碼)
+    const cleanDisplayNames = {
+      'keelung': '基隆', 'taipei': '大臺北地區', 'taoyuan': '桃園', 'zhumiao': '竹苗地區',
+      'taichung': '臺中地區', 'changhua': '彰化', 'nantou': '南投', 
+      'jianan': '雲嘉南地區', 'kaoping': '高屏地區', 'yilan': '宜蘭', 'huadong': '花東地區'
     };
 
     // --- 2. 臺灣地形題庫 ---
@@ -119,7 +131,7 @@
       'huadong': { title: '花東縱谷 / 海岸山脈', reason: '板塊擠壓', desc: '縱谷夾在中央與海岸山脈間，呈狹長形平原；海岸山脈為板塊擠壓隆起。', imgHint: '🖼️ 建議放入花東縱谷圖' }
     };
 
-    // --- 3. 載入 SVG 與事件處理 ---
+    // --- 3. 載入 SVG 與 X光透視掃描 ---
     const container = document.getElementById('map-container');
     const wrapper = document.getElementById('map-wrapper');
     const modalOverlay = document.getElementById('modal-overlay');
@@ -143,16 +155,23 @@
             const path = e.target.closest('path');
             if (!path) return;
 
-            // 抓取 SVG 內的地名資料 (如 "新竹縣 Hsinchu County")
-            const rawName = path.getAttribute('title') || path.getAttribute('id') || (path.querySelector('title') ? path.querySelector('title').textContent : '');
+            // X光掃描：收集被點擊區塊「本身」與「所有父圖層」的屬性，不怕代碼藏在上面
+            let rawText = '';
+            let curr = path;
+            while(curr && curr !== svg) {
+                rawText += (curr.getAttribute('id') || '') + ' ';
+                rawText += (curr.getAttribute('title') || '') + ' ';
+                rawText += (curr.getAttribute('name') || '') + ' ';
+                if (curr.querySelector && curr.querySelector('title')) {
+                    rawText += curr.querySelector('title').textContent + ' ';
+                }
+                curr = curr.parentNode;
+            }
             
-            // 裁掉英文，只留前面的中文名稱 (讓視窗標題更乾淨乾淨)
-            const cleanName = rawName.split(' ')[0];
             let regionKey = null;
-
-            // 跑迴圈進行關鍵字比對
+            // 掃描文字中是否包含我們的關鍵字或數字代碼 (如 63000)
             for (const [keyword, key] of Object.entries(keywordMapping)) {
-              if (rawName.includes(keyword)) {
+              if (rawText.includes(keyword)) {
                 regionKey = key;
                 break;
               }
@@ -160,12 +179,13 @@
 
             if (regionKey && geoData[regionKey]) {
               const data = geoData[regionKey];
+              const cleanName = cleanDisplayNames[regionKey]; // 拿取乾淨的中文顯示名稱
               openModal({ ...data, title: `【${cleanName}】 ${data.title}` });
             } else {
               openModal({
-                title: `【${cleanName}】未綁定`,
+                title: `未綁定區域`,
                 reason: '資料庫無此區域',
-                desc: '點擊成功，但尚未建立此處地形資料。',
+                desc: `點擊成功，但尚未建立此處地形資料。(偵測到的原始標籤: ${rawText.substring(0, 30)})`,
                 imgHint: '🖼️'
               });
             }
