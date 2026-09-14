@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>台灣五大地形 課堂挑戰賽</title>
+    <title>臺灣五大地形 課堂出拳挑戰賽</title>
     <style>
         * {
             box-sizing: border-box;
             font-family: "Microsoft JhengHei", "PingFang TC", sans-serif;
         }
         body {
-            background-color: #f0f8ff;
+            background-color: #f4f6f9;
             margin: 0;
             padding: 20px;
             display: flex;
@@ -18,99 +18,146 @@
             align-items: center;
         }
         h1 {
-            color: #2c3e50;
+            color: #1e293b;
             font-size: 2.2rem;
             margin-bottom: 5px;
         }
         .subtitle {
-            font-size: 1.3rem;
-            color: #e74c3c;
+            font-size: 1.4rem;
+            color: #dc2626;
             font-weight: bold;
             margin-bottom: 20px;
-            height: 30px;
+            height: 35px;
         }
-        .container {
+        .main-layout {
             display: flex;
             flex-wrap: wrap;
-            gap: 30px;
+            gap: 25px;
             justify-content: center;
-            max-width: 1000px;
+            align-items: flex-start;
+            max-width: 1100px;
             width: 100%;
         }
-        /* 台灣地圖容器 */
-        .map-container {
+
+        /* 地圖容器 */
+        .map-card {
             background: #ffffff;
             border-radius: 20px;
-            padding: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            position: relative;
-            width: 380px;
-            height: 520px;
+            padding: 20px 30px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            width: 440px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         svg {
             width: 100%;
-            height: 100%;
-        }
-        .region {
-            fill: #a8e6cf;
-            stroke: #ffffff;
-            stroke-width: 2;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        .region:hover {
-            fill: #ff8b94;
-            transform: scale(1.02);
-            filter: drop-shadow(0px 5px 5px rgba(0,0,0,0.2));
-        }
-        .region-label {
-            font-size: 14px;
-            font-weight: bold;
-            fill: #2d3436;
-            pointer-events: none;
-            text-anchor: middle;
+            height: 560px;
+            filter: drop-shadow(0px 8px 12px rgba(0, 0, 0, 0.15));
         }
 
-        /* 右側儀表板 / 提示 */
+        /* 地形分區路徑樣式 */
+        .region {
+            cursor: pointer;
+            transition: all 0.25s ease;
+            opacity: 0.9;
+        }
+        .region:hover {
+            opacity: 1;
+            filter: brightness(1.15) drop-shadow(0 0 10px rgba(0, 0, 0, 0.3));
+            transform: scale(1.015);
+            transform-origin: center;
+        }
+
+        /* 地圖文字與標籤 */
+        .map-label {
+            font-size: 14px;
+            font-weight: 800;
+            fill: #0f172a;
+            pointer-events: none;
+            text-anchor: middle;
+            paint-order: stroke;
+            stroke: #ffffff;
+            stroke-width: 3px;
+            stroke-linejoin: round;
+        }
+        .pin-dot {
+            fill: #ef4444;
+            stroke: #ffffff;
+            stroke-width: 2;
+            pointer-events: none;
+        }
+
+        /* 右側儀表板 */
         .dashboard {
             flex: 1;
             min-width: 320px;
             background: white;
             border-radius: 20px;
-            padding: 25px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            padding: 30px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
             text-align: center;
         }
-        .countdown-box {
-            font-size: 5rem;
-            font-weight: bold;
-            color: #e74c3c;
-            margin: 10px 0;
+        .timer-box {
+            font-size: 5.5rem;
+            font-weight: 900;
+            color: #ef4444;
+            margin: 15px 0;
+            line-height: 1;
         }
         .btn-timer {
-            background-color: #3498db;
+            background-color: #2563eb;
             color: white;
             border: none;
-            padding: 12px 24px;
-            font-size: 1.2rem;
-            border-radius: 10px;
+            padding: 14px 28px;
+            font-size: 1.25rem;
+            font-weight: bold;
+            border-radius: 12px;
             cursor: pointer;
-            transition: 0.2s;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
         }
         .btn-timer:hover {
-            background-color: #2980b9;
+            background-color: #1d4ed8;
+            transform: translateY(-2px);
         }
 
-        /* Modal 彈窗 */
+        /* 地形圖例 */
+        .legend-box {
+            margin-top: 25px;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            text-align: left;
+            font-size: 0.95rem;
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 12px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: bold;
+            color: #334155;
+        }
+        .color-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 4px;
+        }
+
+        /* 彈窗 Modal */
         .modal-overlay {
             display: none;
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6);
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(4px);
             justify-content: center;
             align-items: center;
             z-index: 1000;
@@ -119,105 +166,152 @@
             background: white;
             width: 90%;
             max-width: 550px;
-            border-radius: 20px;
-            padding: 25px;
+            border-radius: 24px;
+            padding: 30px;
             position: relative;
-            animation: popIn 0.3s ease;
+            animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
             text-align: center;
         }
         @keyframes popIn {
-            from { transform: scale(0.8); opacity: 0; }
+            from { transform: scale(0.85); opacity: 0; }
             to { transform: scale(1); opacity: 1; }
         }
         .close-btn {
             position: absolute;
-            top: 15px; right: 20px;
+            top: 18px; right: 22px;
             font-size: 2rem;
             cursor: pointer;
-            color: #aaa;
+            color: #94a3b8;
         }
-        .close-btn:hover { color: #000; }
+        .close-btn:hover { color: #0f172a; }
         .result-img {
             width: 100%;
             height: 220px;
             object-fit: cover;
-            border-radius: 12px;
-            background: #eee;
+            border-radius: 14px;
+            background: #e2e8f0;
             margin: 15px 0;
         }
         .badge {
             display: inline-block;
-            background: #ff6b6b;
+            background: #ef4444;
             color: white;
             font-size: 1.4rem;
-            padding: 5px 15px;
-            border-radius: 20px;
+            font-weight: bold;
+            padding: 6px 18px;
+            border-radius: 30px;
             margin-bottom: 10px;
         }
         .gesture-hint {
-            font-size: 1.2rem;
-            color: #2e86de;
+            font-size: 1.25rem;
+            color: #1d4ed8;
             font-weight: bold;
-            background: #eef5fc;
-            padding: 8px;
-            border-radius: 8px;
+            background: #eff6ff;
+            padding: 10px;
+            border-radius: 10px;
             margin-bottom: 15px;
+            border: 1px stroke #bfdbfe;
         }
         .explanation {
-            font-size: 1.1rem;
-            color: #485460;
+            font-size: 1.05rem;
+            color: #334155;
             line-height: 1.6;
             text-align: left;
-            background: #f9f9f9;
-            padding: 12px;
-            border-radius: 8px;
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 10px;
         }
     </style>
 </head>
 <body>
 
-    <h1>🗺️ 台灣地形大挑戰：出拳吧！</h1>
+    <h1>🗺️ 臺灣地形大挑戰：看題出拳！</h1>
     <div class="subtitle" id="hover-status">把滑鼠移到地圖上選區域...</div>
 
-    <div class="container">
-        <!-- 台灣互動地圖 -->
-        <div class="map-container">
-            <svg viewBox="0 0 300 450">
-                <!-- 台北 / 士林 -->
-                <path class="region" id="taipei" d="M 180 50 L 220 40 L 230 70 L 190 80 Z" 
-                      onmouseenter="showHover('台北市/士林區')" onmouseleave="clearHover()" onclick="openCard('taipei')"/>
-                <text x="205" y="60" class="region-label">台北/士林</text>
+    <div class="main-layout">
+        <!-- 精確擬真臺灣地圖 SVG -->
+        <div class="map-card">
+            <svg viewBox="0 0 400 620">
+                <!-- 海洋藍背景光暈與臺灣島輪廓 -->
+                <path d="M 270 45 C 295 40 315 55 320 80 C 325 110 315 150 295 210 C 275 280 260 360 235 440 C 215 500 190 560 175 575 C 165 575 160 550 160 510 C 150 440 120 370 110 300 C 100 240 120 180 150 135 C 180 90 220 60 270 45 Z" fill="#e2e8f0" stroke="#cbd5e1" stroke-width="2"/>
 
-                <!-- 桃園 / 台地 -->
-                <path class="region" id="taoyuan" d="M 140 60 L 180 50 L 190 80 L 150 100 Z" 
-                      onmouseenter="showHover('桃園台地')" onmouseleave="clearHover()" onclick="openCard('taoyuan')"/>
-                <text x="165" y="75" class="region-label">桃園</text>
+                <!-- 1. 臺北盆地 (黃色) -->
+                <path class="region" id="taipei" fill="#fde047" stroke="#ca8a04" stroke-width="2.5"
+                      d="M 270 45 C 295 40 315 55 320 80 C 300 95 270 95 250 80 C 255 65 260 50 270 45 Z"
+                      onmouseenter="showHover('臺北盆地 (士林區)')" onmouseleave="clearHover()" onclick="openCard('taipei')"/>
 
-                <!-- 苗栗 / 丘陵 -->
-                <path class="region" id="miaoli" d="M 120 100 L 150 100 L 160 140 L 110 130 Z" 
-                      onmouseenter="showHover('苗栗丘陵')" onmouseleave="clearHover()" onclick="openCard('miaoli')"/>
-                <text x="135" y="120" class="region-label">苗栗</text>
+                <!-- 2. 桃園台地 (紫色) -->
+                <path class="region" id="taoyuan" fill="#e9d5ff" stroke="#9333ea" stroke-width="2.5"
+                      d="M 250 80 C 270 95 260 115 240 125 C 210 120 200 100 215 80 C 230 75 240 78 250 80 Z"
+                      onmouseenter="showHover('桃園台地 / 林口台地')" onmouseleave="clearHover()" onclick="openCard('taoyuan')"/>
 
-                <!-- 嘉南 / 平原 -->
-                <path class="region" id="jianan" d="M 70 200 L 110 190 L 110 300 L 60 280 Z" 
-                      onmouseenter="showHover('嘉南平原')" onmouseleave="clearHover()" onclick="openCard('jianan')"/>
-                <text x="85" y="245" class="region-label">嘉南平原</text>
+                <!-- 3. 苗栗丘陵 (藍色) -->
+                <path class="region" id="miaoli" fill="#bae6fd" stroke="#0284c7" stroke-width="2.5"
+                      d="M 240 125 C 260 115 250 145 235 170 C 205 175 170 160 160 140 C 175 120 210 120 240 125 Z"
+                      onmouseenter="showHover('苗栗丘陵 / 石碇茶區')" onmouseleave="clearHover()" onclick="openCard('miaoli')"/>
 
-                <!-- 中央山脈 / 山地 -->
-                <path class="region" id="mountain" d="M 150 140 L 190 130 L 170 320 L 120 300 Z" 
-                      onmouseenter="showHover('中央山脈')" onmouseleave="clearHover()" onclick="openCard('mountain')"/>
-                <text x="155" y="220" class="region-label">中央山脈</text>
+                <!-- 4. 嘉南平原 (橘黃) -->
+                <path class="region" id="jianan" fill="#fed7aa" stroke="#ea580c" stroke-width="2.5"
+                      d="M 160 140 C 170 160 205 175 225 320 C 205 400 150 400 110 300 C 100 240 120 180 160 140 Z"
+                      onmouseenter="showHover('嘉南平原 / 宜蘭平原')" onmouseleave="clearHover()" onclick="openCard('jianan')"/>
+
+                <!-- 5. 中央山脈 (綠色) -->
+                <path class="region" id="mountain" fill="#bbf7d0" stroke="#16a34a" stroke-width="2.5"
+                      d="M 250 145 C 295 180 305 260 280 340 C 255 420 230 480 205 520 C 190 470 205 400 225 320 C 235 250 230 190 250 145 Z"
+                      onmouseenter="showHover('中央山脈 (山地)')" onmouseleave="clearHover()" onclick="openCard('mountain')"/>
+
+                <!-- 6. 埔里盆地 (粉色小區域) -->
+                <path class="region" id="puli" fill="#fbcfe8" stroke="#db2777" stroke-width="2.5"
+                      d="M 220 230 C 240 225 245 245 230 255 C 215 255 210 240 220 230 Z"
+                      onmouseenter="showHover('埔里盆地 (南投)')" onmouseleave="clearHover()" onclick="openCard('puli')"/>
+
+                <!-- 7. 屏東沿海平原 (青色) -->
+                <path class="region" id="fangliao" fill="#99f6e4" stroke="#0d9488" stroke-width="2.5"
+                      d="M 150 400 C 205 400 190 470 205 520 C 190 560 175 575 165 575 C 160 550 160 510 150 440 C 145 420 148 410 150 400 Z"
+                      onmouseenter="showHover('屏東沿海平原 (枋寮)')" onmouseleave="clearHover()" onclick="openCard('fangliao')"/>
+
+                <!-- 地名文字與對應座標紅點 -->
+                <circle cx="280" cy="70" r="4" class="pin-dot"/>
+                <text x="280" y="65" class="map-label">臺北/士林</text>
+
+                <circle cx="230" cy="100" r="4" class="pin-dot"/>
+                <text x="210" y="98" class="map-label">桃園台地</text>
+
+                <circle cx="200" cy="145" r="4" class="pin-dot"/>
+                <text x="180" y="145" class="map-label">苗栗丘陵</text>
+
+                <circle cx="155" cy="270" r="4" class="pin-dot"/>
+                <text x="155" y="265" class="map-label">嘉南平原</text>
+
+                <circle cx="225" cy="240" r="4" class="pin-dot"/>
+                <text x="235" y="235" class="map-label">埔里</text>
+
+                <circle cx="260" cy="280" r="4" class="pin-dot"/>
+                <text x="260" y="275" class="map-label">中央山脈</text>
+
+                <circle cx="170" cy="480" r="4" class="pin-dot"/>
+                <text x="160" y="475" class="map-label">屏東枋寮</text>
             </svg>
         </div>
 
-        <!-- 倒數計時與控場儀表板 -->
+        <!-- 倒數計時器與顏色圖例 -->
         <div class="dashboard">
-            <h2>倒數出拳計時器</h2>
-            <div class="countdown-box" id="timer">5</div>
-            <button class="btn-timer" onclick="startTimer()">⏱️ 開始 5 秒倒數</button>
-            <p style="color: #7f8c8d; margin-top: 20px;">
-                點擊地圖上的地點前，先按下倒數！<br>倒數歸零時全班必須擺好地形拳！
+            <h2 style="margin: 0; color: #1e293b;">⏱️ 倒數出拳計時器</h2>
+            <div class="timer-box" id="timer">5</div>
+            <button class="btn-timer" onclick="startTimer()">▶️ 開始 5 秒倒數</button>
+            <p style="color: #64748b; margin-top: 15px; font-size: 0.95rem;">
+                點擊地圖前，先按開始倒數！<br>倒數歸零時全班手勢定格！
             </p>
+
+            <!-- 地形圖例說明 -->
+            <div class="legend-box">
+                <div class="legend-item"><div class="color-dot" style="background:#fde047; border: 1px solid #ca8a04;"></div>盆地 (臺北/埔里)</div>
+                <div class="legend-item"><div class="color-dot" style="background:#e9d5ff; border: 1px solid #9333ea;"></div>台地 (桃園/林口)</div>
+                <div class="legend-item"><div class="color-dot" style="background:#bae6fd; border: 1px solid #0284c7;"></div>丘陵 (苗栗/石碇)</div>
+                <div class="legend-item"><div class="color-dot" style="background:#fed7aa; border: 1px solid #ea580c;"></div>平原 (嘉南/宜蘭)</div>
+                <div class="legend-item"><div class="color-dot" style="background:#bbf7d0; border: 1px solid #16a34a;"></div>山地 (中央山脈)</div>
+                <div class="legend-item"><div class="color-dot" style="background:#99f6e4; border: 1px solid #0d9488;"></div>沿海平原 (屏東)</div>
+            </div>
         </div>
     </div>
 
@@ -225,11 +319,10 @@
     <div class="modal-overlay" id="modal">
         <div class="modal-content">
             <span class="close-btn" onclick="closeCard()">&times;</span>
-            <h2 id="m-title" style="margin: 5px 0;">地區名稱</h2>
+            <h2 id="m-title" style="margin: 5px 0 10px 0; color: #0f172a;">地區名稱</h2>
             <div><span class="badge" id="m-landform">地形類別</span></div>
             <div class="gesture-hint" id="m-gesture">手勢：--</div>
             
-            <!-- 圖片路徑可以在下面 JS 更改 -->
             <img id="m-img" class="result-img" src="" alt="地形圖片">
 
             <div class="explanation" id="m-desc">解釋說明載入中...</div>
@@ -237,46 +330,59 @@
     </div>
 
     <script>
-        // 資料庫：可自行替換圖片網址 (img) 與文字說明
+        // 資料庫：包含課本與題目常考情境
         const data = {
             taipei: {
-                title: "臺北市士林區 (蘭雅國小周邊)",
-                landform: "盆地 (臺北盆地)",
+                title: "臺北市士林區 (臺北盆地)",
+                landform: "盆地",
                 gesture: "👊 雙手向內捧成碗狀 🥣",
-                img: "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=600&auto=format&fit=crop", // 可換成士林/台北圖片
-                desc: "<b>為什麼是盆地？</b><br>台北市四周被陽明山系與雪山山脈等高山包圍，中間地勢比較低平，形狀就像一個大碗一樣！所以屬於『盆地』。"
+                img: "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=700&auto=format&fit=crop",
+                desc: "<b>考題常見描述：</b>四周被陽明山與雪山山脈包圍，中間地勢低平。<br><b>生活應用：</b>人口密集、大樓林立（如台北101、蘭雅國小周邊），交通網路便利。"
+            },
+            puli: {
+                title: "南投縣埔里鎮 (埔里盆地)",
+                landform: "盆地",
+                gesture: "👊 雙手向內捧成碗狀 🥣",
+                img: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=700&auto=format&fit=crop", 
+                desc: "<b>考題常見描述：</b>位於臺灣正中央的山間低窪平地，四周全是高山。<br><b>生活應用：</b>氣候溫和，農業與花卉栽培十分發達。"
             },
             taoyuan: {
-                title: "桃園市 / 林口地區",
-                landform: "台地 (桃園台地)",
+                title: "桃園市 / 林口地區 (桃園台地)",
+                landform: "台地",
                 gesture: "👊 一手橫平一手豎立 (T字型) 凸",
-                img: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=600&auto=format&fit=crop", 
-                desc: "<b>為什麼是台地？</b><br>這裡的頂部看起來平平廣廣的，但是邊緣有顯著陡峭的斜坡，像是一個高起來的平台。"
+                img: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=700&auto=format&fit=crop", 
+                desc: "<b>考題常見描述：</b>地勢比平原高，頂部像桌子一樣平坦，但邊緣有陡坡。<br><b>生活應用：</b>早期多開闢埤塘蓄水，現今多發展為工業區與新市鎮。"
             },
             miaoli: {
-                title: "苗栗縣 / 石碇地區",
-                landform: "丘陵 (苗栗丘陵)",
+                title: "苗栗縣 / 新北石碇區 (苗栗丘陵)",
+                landform: "丘陵",
                 gesture: "👊 手掌上下做微幅波浪 〰️",
-                img: "https://images.unsplash.com/photo-1586348943529-beaae6c28db9?w=600&auto=format&fit=crop", 
-                desc: "<b>為什麼是丘陵？</b><br>高度不超過 1000 公尺，起伏比較緩和。因為排水良好，這裡非常適合用來開闢茶園或水果園！"
+                img: "https://images.unsplash.com/photo-1586348943529-beaae6c28db9?w=700&auto=format&fit=crop", 
+                desc: "<b>考題常見描述：</b>高度低於 1000 公尺，地形起伏緩和。<br><b>生活應用：</b>坡地排水良好，非常適合開闢茶園（如石碇包種茶）與果園（採水果）。"
             },
             jianan: {
-                title: "嘉南平原 / 宜蘭地區",
-                landform: "平原 (嘉南平原)",
+                title: "嘉南平原 / 宜蘭平原",
+                landform: "平原",
                 gesture: "👊 雙手平平對接 🖐️",
-                img: "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=600&auto=format&fit=crop", 
-                desc: "<b>為什麼是平原？</b><br>地勢低平、寬廣無邊，大多是由河川沖積而成。這裡是臺灣最重要的農業基地，適合大面積種植稻米！"
+                img: "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=700&auto=format&fit=crop", 
+                desc: "<b>考題常見描述：</b>地勢低平廣闊，由河流攜帶泥沙沖積而成。<br><b>生活應用：</b>臺灣最大的米倉與農業基地，適合大面積種植稻米與蔬果。"
+            },
+            fangliao: {
+                title: "屏東縣枋寮鄉 (沿海平原)",
+                landform: "平原",
+                gesture: "👊 雙手平平對接 🖐️",
+                img: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=700&auto=format&fit=crop", 
+                desc: "<b>考題常見描述：</b>靠近海洋的平坦土地。<br><b>生活應用：</b>居民利用平坦地形與海水資源挖設魚塭發展養殖漁業，或種植蓮霧、芒果。"
             },
             mountain: {
-                title: "中央山脈 / 陽明山",
-                landform: "山地 (中央山脈)",
+                title: "中央山脈 / 玉山 / 陽明山",
+                landform: "山地",
                 gesture: "👊 雙手合十指尖向上 (尖頂山峰) ⛰️",
-                img: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&auto=format&fit=crop", 
-                desc: "<b>為什麼是山地？</b><br>高度通常在 1000 公尺以上，地勢非常高聳、坡度陡峭。中央山脈也是臺灣的『屋脊』喔！"
+                img: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=700&auto=format&fit=crop", 
+                desc: "<b>考題常見描述：</b>海拔在 1000 公尺以上，地勢高聳、坡度陡峭。<br><b>生活應用：</b>水土保持重要區域，擁有豐富的森林生態資源與觀光勝地。"
             }
         };
 
-        // 滑鼠移入效果
         function showHover(name) {
             document.getElementById('hover-status').innerText = `👉 要點開【${name}】囉！不可以偷變拳喔！`;
         }
@@ -285,7 +391,6 @@
             document.getElementById('hover-status').innerText = "把滑鼠移到地圖上選區域...";
         }
 
-        // 開啟結果彈窗
         function openCard(key) {
             const item = data[key];
             if (!item) return;
@@ -303,7 +408,6 @@
             document.getElementById('modal').style.display = 'none';
         }
 
-        // 倒數計時功能
         let timerInterval;
         function startTimer() {
             let count = 5;
