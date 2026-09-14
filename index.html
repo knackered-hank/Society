@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>臺灣五大地形 課堂出拳挑戰賽</title>
-    <!-- 引入 D3.js 用於繪製臺灣真實地理地圖 -->
-    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -25,7 +23,7 @@
             margin-bottom: 5px;
         }
         .subtitle {
-            font-size: 1.35rem;
+            font-size: 1.3rem;
             color: #dc2626;
             font-weight: bold;
             margin-bottom: 20px;
@@ -42,7 +40,7 @@
             width: 100%;
         }
 
-        /* 地圖卡片容器 */
+        /* 地圖容器 */
         .map-card {
             background: #ffffff;
             border-radius: 20px;
@@ -64,31 +62,22 @@
             border-radius: 12px;
         }
 
-        /* 行政區向量樣式 */
+        /* 行政區預設樣式 */
         .county {
             fill: #cbd5e1;
             stroke: #ffffff;
-            stroke-width: 1.2;
+            stroke-width: 1.5;
             stroke-linejoin: round;
             cursor: pointer;
             transition: fill 0.2s ease, stroke 0.2s ease, filter 0.2s ease;
         }
 
-        /* 滑鼠移上去：區域著色 + 邊界高亮發光 (完全固定不跳動) */
+        /* 滑鼠懸停：邊界高亮發光（完全固定不位移/不浮出） */
         .county:hover {
             fill: #2563eb;
             stroke: #93c5fd;
-            stroke-width: 2;
+            stroke-width: 2.5;
             filter: drop-shadow(0px 0px 8px #2563eb);
-        }
-
-        /* 載入中提示 */
-        .loading-overlay {
-            position: absolute;
-            font-size: 1.2rem;
-            color: #475569;
-            font-weight: bold;
-            text-align: center;
         }
 
         /* 右側儀表板 */
@@ -148,7 +137,7 @@
             color: #334155;
         }
 
-        /* 彈窗 Modal */
+        /* 答案 Modal 彈窗 */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -218,8 +207,33 @@
 
     <div class="main-layout">
         <div class="map-card">
-            <div id="loading-text" class="loading-overlay">⏳ 載入臺灣真實行政區地圖中...</div>
-            <svg id="taiwan-svg" class="taiwan-map" viewBox="0 0 440 600"></svg>
+            <svg class="taiwan-map" viewBox="0 0 440 600">
+                <!-- 全臺灣 22 行政區完全內嵌向量路徑（免連網） -->
+                <g id="counties-group">
+                    <path class="county" data-name="基隆市" data-lf="丘陵 / 港灣" data-gest="〰️ 掌心微波" data-desc="基隆多山丘陵與港灣地形，平地極少。" d="M 320,40 L 332,38 L 335,48 L 324,50 Z"/>
+                    <path class="county" data-name="臺北市" data-lf="臺北盆地" data-gest="🥣 雙手捧碗" data-desc="四周被山脈包圍，中央地勢低平，為典型的盆地。" d="M 298,52 L 312,45 L 322,58 L 310,68 L 296,62 Z"/>
+                    <path class="county" data-name="新北市" data-lf="丘陵 / 台地 / 盆地" data-gest="〰️ 掌心微波" data-desc="地形豐富，包含林口台地、淡水河口平原與北部丘陵。" d="M 280,30 L 315,25 L 348,45 L 335,80 L 305,88 L 280,72 L 290,55 L 298,52 L 296,62 L 310,68 L 322,58 L 312,45 L 298,52 L 290,55 Z"/>
+                    <path class="county" data-name="桃園市" data-lf="桃園台地" data-gest="凸 T字手勢" data-desc="地勢平坦高陡，古時候開闢許多埤塘進行灌溉。" d="M 245,55 L 280,30 L 280,72 L 260,95 L 235,82 Z"/>
+                    <path class="county" data-name="新竹市" data-lf="平原 / 台地" data-gest="🖐️ 雙手對接" data-desc="頭前溪沖積成的平原，風勢強勁稱風城。" d="M 228,82 L 238,80 L 240,90 L 230,92 Z"/>
+                    <path class="county" data-name="新竹縣" data-lf="新竹丘陵 / 台地" data-gest="〰️ 掌心微波" data-desc="多丘陵與台地地形，盛產茶葉與柑橘。" d="M 235,82 L 260,95 L 252,120 L 222,110 L 228,82 L 230,92 L 240,90 L 238,80 L 228,82 Z"/>
+                    <path class="county" data-name="苗栗縣" data-lf="苗栗丘陵" data-gest="〰️ 掌心微波" data-desc="地形以丘陵為主，稱為山城，地形起伏連綿。" d="M 205,108 L 222,110 L 252,120 L 242,150 L 195,138 Z"/>
+                    <path class="county" data-name="臺中市" data-lf="臺中盆地 / 台地" data-gest="🥣 雙手捧碗" data-desc="西有大肚台地，東有臺中盆地與雪山山脈餘脈。" d="M 185,140 L 195,138 L 242,150 L 280,165 L 225,190 L 170,172 Z"/>
+                    <path class="county" data-name="彰化縣" data-lf="彰化平原" data-gest="🖐️ 雙手對接" data-desc="濁水溪沖積平原，地勢平坦，是臺灣的糧倉之一。" d="M 152,175 L 170,172 L 188,208 L 158,215 Z"/>
+                    <path class="county" data-name="南投縣" data-lf="埔里盆地 / 中央山脈" data-gest="🥣 雙手捧碗" data-desc="唯一不臨海縣市，境內包含埔里盆地群與百岳高山。" d="M 225,190 L 280,165 L 272,245 L 210,268 L 188,208 L 170,172 Z"/>
+                    <path class="county" data-name="雲林縣" data-lf="嘉南平原" data-gest="🖐️ 雙手對接" data-desc="廣大的農業平原，地勢極為平坦。" d="M 132,218 L 158,215 L 188,208 L 178,252 L 128,248 Z"/>
+                    <path class="county" data-name="嘉義市" data-lf="嘉南平原" data-gest="🖐️ 雙手對接" data-desc="位於嘉南平原中央的都市。" d="M 148,258 L 158,256 L 160,266 L 150,268 Z"/>
+                    <path class="county" data-name="嘉義縣" data-lf="嘉南平原 / 阿里山山脈" data-gest="🖐️ 雙手對接" data-desc="西半部為平原，東半部為高聳的阿里山山脈。" d="M 128,248 L 178,252 L 210,268 L 192,298 L 120,285 L 128,248 L 150,268 L 160,266 L 158,256 L 148,258 Z"/>
+                    <path class="county" data-name="臺南市" data-lf="嘉南平原" data-gest="🖐️ 雙手對接" data-desc="古老的台江內海演變成今日廣大的平原與潟湖。" d="M 112,288 L 120,285 L 192,298 L 175,348 L 105,335 Z"/>
+                    <path class="county" data-name="高雄市" data-lf="平原 / 丘陵 / 玉山山脈" data-gest="🖐️ 雙手對接" data-desc="地形多元，東北高山起伏，西南為廣大平原港灣。" d="M 175,348 L 192,298 L 210,268 L 245,290 L 205,390 L 138,405 L 105,335 Z"/>
+                    <path class="county" data-name="屏東縣" data-lf="屏東平原 / 恆春半島" data-gest="🖐️ 雙手對接" data-desc="包含屏東平原與最南端丘陵台地組成的恆春半島。" d="M 138,405 L 205,390 L 215,440 L 185,535 L 162,538 L 142,460 Z"/>
+                    <path class="county" data-name="宜蘭縣" data-lf="宜蘭平原 (蘭陽平原)" data-gest="🖐️ 雙手對接" data-desc="三面環山一面臨海，蘭陽溪沖積形成三角洲平原。" d="M 305,88 L 335,80 L 345,110 L 310,160 L 280,165 L 252,120 L 260,95 Z"/>
+                    <path class="county" data-name="花蓮縣" data-lf="中央山脈 / 海岸山脈 / 花東縱谷" data-gest="⛰️ 雙手合十" data-desc="夾在兩大山脈之間的縱谷地形，山高谷深。" d="M 280,165 L 310,160 L 290,290 L 245,290 L 210,268 L 272,245 Z"/>
+                    <path class="county" data-name="臺東縣" data-lf="花東縱谷 / 海岸山脈" data-gest="⛰️ 雙手合十" data-desc="海岸線綿長，縱谷平原延伸至東海岸。" d="M 245,290 L 290,290 L 250,440 L 215,440 L 205,390 Z"/>
+                    <path class="county" data-name="澎湖縣" data-lf="玄武岩方山 (台地)" data-gest="凸 T字手勢" data-desc="由火山噴發玄武岩構成的平坦方山台地群。" d="M 52,280 C 42,260 62,240 68,270 Z"/>
+                    <path class="county" data-name="金門縣" data-lf="花崗岩丘陵" data-gest="〰️ 掌心微波" data-desc="古老花崗岩構成的丘陵與平坦台地。" d="M 30,160 L 48,158 L 45,170 L 28,168 Z"/>
+                    <path class="county" data-name="連江縣 (馬祖)" data-lf="花崗岩丘陵" data-gest="〰️ 掌心微波" data-desc="谷灣式海岸與花崗岩丘陵群。" d="M 40,60 L 52,58 L 50,68 L 38,66 Z"/>
+                </g>
+            </svg>
         </div>
 
         <div class="dashboard">
@@ -252,68 +266,35 @@
     </div>
 
     <script>
-        const width = 440;
-        const height = 600;
-
-        // 設定臺灣地圖投影中心（經度 120.95, 緯度 23.75）
-        const projection = d3.geoMercator()
-            .center([120.95, 23.75])
-            .scale(6800)
-            .translate([width / 2, height / 2]);
-
-        const pathGenerator = d3.geoPath().projection(projection);
-        const svg = d3.select("#taiwan-svg");
+        const counties = document.querySelectorAll('.county');
         const hoverStatus = document.getElementById('hover-status');
 
-        // 多重 CDN 備援機制，確保 100% 成功讀取臺灣邊界資料
-        async function fetchTaiwanGeoJSON() {
-            const urls = [
-                "https://cdn.jsdelivr.net/gh/g0v/twgeojson@master/json/twCounty2010.json",
-                "https://fastly.jsdelivr.net/gh/g0v/twgeojson@master/json/twCounty2010.json",
-                "https://raw.githubusercontent.com/g0v/twgeojson/master/json/twCounty2010.json"
-            ];
-
-            for (let url of urls) {
-                try {
-                    const res = await fetch(url);
-                    if (res.ok) return await res.json();
-                } catch (e) {
-                    console.warn("備援載入中...", url);
-                }
-            }
-            throw new Error("無法載入地圖資料");
-        }
-
-        fetchTaiwanGeoJSON().then(data => {
-            document.getElementById("loading-text").style.display = "none";
-
-            svg.selectAll("path")
-                .data(data.features)
-                .enter()
-                .append("path")
-                .attr("d", pathGenerator)
-                .attr("class", "county")
-                .on("mouseenter", function(event, d) {
-                    const name = d.properties.COUNTYNAME || d.properties.name || "行政區";
+        counties.forEach(county => {
+            county.addEventListener('mouseenter', (e) => {
+                const name = e.target.getAttribute('data-name');
+                if (name) {
                     hoverStatus.innerText = `👉 目前選擇：【${name}】`;
-                })
-                .on("mouseleave", function() {
-                    hoverStatus.innerText = '把滑鼠移到行政區上即可高亮發光...';
-                })
-                .on("click", function(event, d) {
-                    const name = d.properties.COUNTYNAME || d.properties.name || "該行政區";
-                    openCard(name);
-                });
-        }).catch(err => {
-            document.getElementById("loading-text").innerText = "❌ 地圖載入失敗，請檢查網路連線。";
-            console.error(err);
+                }
+            });
+
+            county.addEventListener('mouseleave', () => {
+                hoverStatus.innerText = '把滑鼠移到行政區上即可高亮發光...';
+            });
+
+            county.addEventListener('click', (e) => {
+                const name = e.target.getAttribute('data-name');
+                const landform = e.target.getAttribute('data-lf');
+                const gesture = e.target.getAttribute('data-gest');
+                const desc = e.target.getAttribute('data-desc');
+                openCard(name, landform, gesture, desc);
+            });
         });
 
-        function openCard(regionName) {
-            document.getElementById('m-title').innerText = regionName;
-            document.getElementById('m-landform').innerText = "主要地形考題";
-            document.getElementById('m-gesture').innerText = "請比出對應地形手勢！";
-            document.getElementById('m-desc').innerHTML = `<b>教學提示：</b>點選 ${regionName}，請引導學生思考該區域常見的地形（山地、丘陵、台地、平原、盆地）。`;
+        function openCard(name, landform, gesture, desc) {
+            document.getElementById('m-title').innerText = name;
+            document.getElementById('m-landform').innerText = landform;
+            document.getElementById('m-gesture').innerText = `出拳手勢：${gesture}`;
+            document.getElementById('m-desc').innerHTML = `<b>地形特徵：</b>${desc}`;
             document.getElementById('modal').style.display = 'flex';
         }
 
