@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>臺灣五大地形 課堂出拳挑戰賽</title>
+    <!-- 引入 D3.js 用於繪製臺灣真實地理地圖 -->
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -48,35 +50,45 @@
             box-shadow: 0 10px 25px rgba(0,0,0,0.08);
             position: relative;
             width: 440px;
-            height: 620px;
+            height: 600px;
             display: flex;
             justify-content: center;
             align-items: center;
             overflow: hidden;
         }
         
-        /* 臺灣 SVG 行政區地圖與發光效果 */
         svg.taiwan-map {
             width: 100%;
             height: 100%;
+            background-color: #f0fdf4;
+            border-radius: 12px;
         }
 
-        /* 預設行政區樣式 */
+        /* 行政區向量樣式 */
         .county {
             fill: #cbd5e1;
             stroke: #ffffff;
-            stroke-width: 1.8;
+            stroke-width: 1.2;
             stroke-linejoin: round;
             cursor: pointer;
-            transition: fill 0.25s ease, stroke 0.25s ease, filter 0.25s ease;
+            transition: fill 0.2s ease, stroke 0.2s ease, filter 0.2s ease;
         }
 
-        /* 滑鼠移上去時：區域著色 + 邊界高亮發光 (絕不安動/不跳動) */
+        /* 滑鼠移上去：區域著色 + 邊界高亮發光 (完全固定不跳動) */
         .county:hover {
-            fill: #3b82f6;
+            fill: #2563eb;
             stroke: #93c5fd;
-            stroke-width: 2.5;
-            filter: drop-shadow(0px 0px 10px #2563eb);
+            stroke-width: 2;
+            filter: drop-shadow(0px 0px 8px #2563eb);
+        }
+
+        /* 載入中提示 */
+        .loading-overlay {
+            position: absolute;
+            font-size: 1.2rem;
+            color: #475569;
+            font-weight: bold;
+            text-align: center;
         }
 
         /* 右側儀表板 */
@@ -206,66 +218,10 @@
 
     <div class="main-layout">
         <div class="map-card">
-            <svg class="taiwan-map" viewBox="0 0 400 600">
-                <!-- 海洋背景邊框 -->
-                <rect width="400" height="600" fill="#f0fdf4" rx="15"/>
-
-                <!-- 全臺灣 22 行政區獨立向量路徑（靜態不帶文字） -->
-                <g id="counties-group">
-                    <!-- 基隆市 -->
-                    <path class="county" id="keelung" data-name="基隆市" d="M 285,42 L 295,40 L 298,48 L 288,52 Z"/>
-                    <!-- 臺北市 -->
-                    <path class="county" id="taipei" data-name="臺北市 (臺北盆地)" d="M 265,50 C 275,45 285,55 282,65 C 275,72 260,68 265,50 Z"/>
-                    <!-- 新北市 -->
-                    <path class="county" id="newtaipei" data-name="新北市" d="M 250,32 C 270,30 295,35 305,52 L 292,78 C 270,85 245,70 250,32 Z M 265,50 C 260,68 275,72 282,65 C 285,55 275,45 265,50 Z"/>
-                    <!-- 桃園市 -->
-                    <path class="county" id="taoyuan" data-name="桃園市 (桃園台地)" d="M 220,52 C 240,48 250,55 248,78 C 235,95 220,90 215,70 Z"/>
-                    <!-- 新竹縣市 -->
-                    <path class="county" id="hsinchu" data-name="新竹縣市" d="M 205,72 C 220,70 232,90 220,112 C 198,105 195,85 205,72 Z"/>
-                    <!-- 苗栗縣 -->
-                    <path class="county" id="miaoli" data-name="苗栗縣 (苗栗丘陵)" d="M 188,95 C 208,92 220,112 C 205,140 180,128 188,95 Z"/>
-                    <!-- 臺中市 -->
-                    <path class="county" id="taichung" data-name="臺中市" d="M 172,128 C 205,125 238,138 215,168 C 175,160 162,142 172,128 Z"/>
-                    <!-- 彰化縣 -->
-                    <path class="county" id="changhua" data-name="彰化縣 (平原)" d="M 148,162 C 170,158 178,175 160,195 C 142,190 140,172 148,162 Z"/>
-                    <!-- 南投縣 -->
-                    <path class="county" id="nantou" data-name="南投縣 (埔里盆地 / 中央山脈)" d="M 175,165 C 218,155 235,195 210,248 C 178,240 165,200 175,165 Z"/>
-                    <!-- 雲林縣 -->
-                    <path class="county" id="yunlin" data-name="雲林縣 (嘉南平原)" d="M 132,195 C 160,192 172,215 145,235 C 122,228 120,208 132,195 Z"/>
-                    <!-- 嘉義縣市 -->
-                    <path class="county" id="chiayi" data-name="嘉義縣市 (嘉南平原)" d="M 125,235 C 165,225 180,250 152,282 C 118,272 112,250 125,235 Z"/>
-                    <!-- 臺南市 -->
-                    <path class="county" id="tainan" data-name="臺南市 (嘉南平原)" d="M 112,275 C 148,270 158,298 135,332 C 105,322 100,295 112,275 Z"/>
-                    <!-- 高雄市 -->
-                    <path class="county" id="kaohsiung" data-name="高雄市" d="M 135,332 C 175,285 202,320 162,392 C 128,382 120,352 135,332 Z"/>
-                    <!-- 屏東縣 -->
-                    <path class="county" id="pingtung" data-name="屏東縣 (屏東平原 / 枋寮)" d="M 142,392 C 172,382 182,435 160,490 C 140,490 135,432 142,392 Z"/>
-                    <!-- 宜蘭縣 -->
-                    <path class="county" id="yilan" data-name="宜蘭縣 (宜蘭平原)" d="M 275,80 C 300,75 305,115 268,132 C 255,108 260,92 275,80 Z"/>
-                    <!-- 花蓮縣 -->
-                    <path class="county" id="hualien" data-name="花蓮縣 (中央山脈 / 海岸山脈)" d="M 235,140 C 272,130 265,255 222,282 C 210,225 222,175 235,140 Z"/>
-                    <!-- 臺東縣 -->
-                    <path class="county" id="taitung" data-name="臺東縣 (花東縱谷)" d="M 218,282 C 262,258 245,395 180,412 C 178,365 202,315 218,282 Z"/>
-                    <!-- 澎湖縣 -->
-                    <g id="penghu">
-                        <circle class="county" id="penghu-1" data-name="澎湖縣" cx="55" cy="250" r="8"/>
-                        <circle class="county" id="penghu-2" data-name="澎湖縣" cx="42" cy="262" r="6"/>
-                        <circle class="county" id="penghu-3" data-name="澎湖縣" cx="68" cy="242" r="5"/>
-                    </g>
-                    <!-- 金門縣 -->
-                    <g id="kinmen">
-                        <path class="county" id="kinmen-1" data-name="金門縣" d="M 30,140 L 45,138 L 42,148 L 28,146 Z"/>
-                    </g>
-                    <!-- 連江縣 (馬祖) -->
-                    <g id="matsu">
-                        <circle class="county" id="matsu-1" data-name="連江縣 (馬祖)" cx="50" cy="50" r="5"/>
-                        <circle class="county" id="matsu-2" data-name="連江縣 (馬祖)" cx="62" cy="45" r="4"/>
-                    </g>
-                </g>
-            </svg>
+            <div id="loading-text" class="loading-overlay">⏳ 載入臺灣真實行政區地圖中...</div>
+            <svg id="taiwan-svg" class="taiwan-map" viewBox="0 0 440 600"></svg>
         </div>
 
-        <!-- 倒數計時器與顏色圖例 -->
         <div class="dashboard">
             <h2 style="margin: 0; color: #0f172a;">⏱️ 倒數出拳計時器</h2>
             <div class="timer-box" id="timer">5</div>
@@ -296,27 +252,61 @@
     </div>
 
     <script>
-        // 為每個縣市監聽滑鼠懸停與點擊事件
-        const counties = document.querySelectorAll('.county');
+        const width = 440;
+        const height = 600;
+
+        // 設定臺灣地圖投影中心（經度 120.95, 緯度 23.75）
+        const projection = d3.geoMercator()
+            .center([120.95, 23.75])
+            .scale(6800)
+            .translate([width / 2, height / 2]);
+
+        const pathGenerator = d3.geoPath().projection(projection);
+        const svg = d3.select("#taiwan-svg");
         const hoverStatus = document.getElementById('hover-status');
 
-        counties.forEach(county => {
-            county.addEventListener('mouseenter', (e) => {
-                const name = e.target.getAttribute('data-name');
-                if (name) {
-                    hoverStatus.innerText = `👉 目前選擇：【${name}】`;
+        // 多重 CDN 備援機制，確保 100% 成功讀取臺灣邊界資料
+        async function fetchTaiwanGeoJSON() {
+            const urls = [
+                "https://cdn.jsdelivr.net/gh/g0v/twgeojson@master/json/twCounty2010.json",
+                "https://fastly.jsdelivr.net/gh/g0v/twgeojson@master/json/twCounty2010.json",
+                "https://raw.githubusercontent.com/g0v/twgeojson/master/json/twCounty2010.json"
+            ];
+
+            for (let url of urls) {
+                try {
+                    const res = await fetch(url);
+                    if (res.ok) return await res.json();
+                } catch (e) {
+                    console.warn("備援載入中...", url);
                 }
-            });
+            }
+            throw new Error("無法載入地圖資料");
+        }
 
-            county.addEventListener('mouseleave', () => {
-                hoverStatus.innerText = '把滑鼠移到行政區上即可高亮發光...';
-            });
+        fetchTaiwanGeoJSON().then(data => {
+            document.getElementById("loading-text").style.display = "none";
 
-            county.addEventListener('click', (e) => {
-                const id = e.target.id.split('-')[0]; // 處理群島 id
-                const name = e.target.getAttribute('data-name') || "該行政區";
-                openCard(name);
-            });
+            svg.selectAll("path")
+                .data(data.features)
+                .enter()
+                .append("path")
+                .attr("d", pathGenerator)
+                .attr("class", "county")
+                .on("mouseenter", function(event, d) {
+                    const name = d.properties.COUNTYNAME || d.properties.name || "行政區";
+                    hoverStatus.innerText = `👉 目前選擇：【${name}】`;
+                })
+                .on("mouseleave", function() {
+                    hoverStatus.innerText = '把滑鼠移到行政區上即可高亮發光...';
+                })
+                .on("click", function(event, d) {
+                    const name = d.properties.COUNTYNAME || d.properties.name || "該行政區";
+                    openCard(name);
+                });
+        }).catch(err => {
+            document.getElementById("loading-text").innerText = "❌ 地圖載入失敗，請檢查網路連線。";
+            console.error(err);
         });
 
         function openCard(regionName) {
