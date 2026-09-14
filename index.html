@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Taiwan Map Visualization</title>
+  <title>Taiwan Map</title>
   <style>
     * {
       box-sizing: border-box;
@@ -15,37 +15,28 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      min-height: 100vh;
-      background-color: #f8fafc;
+      width: 100vw;
+      height: 100vh;
+      background-color: #ffffff;
       overflow: hidden;
     }
 
     #map-container {
       width: 100%;
-      height: 100vh;
+      height: 100%;
       display: flex;
       justify-content: center;
       align-items: center;
     }
 
-    /* 自動套用至載入的 SVG */
-    #map-container svg {
+    svg {
       width: 100%;
       height: 100%;
-      max-width: 1440px;
-      max-height: 2055px;
-      
-      /* 方法 A：整體縮放至 80% 並以畫布中心點為基準 */
-      transform: scale(0.8);
-      transform-origin: center center;
-    }
-
-    /* CSS 隱藏離島與角落畫框 (維持主島精細度) */
-    #box,
-    path[title*="連江"],
-    path[title*="金門"],
-    path[title*="澎湖"] {
-      display: none !important;
+      max-width: 90vw;
+      max-height: 90vh;
+      /* 調整縮放與置中焦點，確保南北全島都能完整顯示 */
+      transform: scale(0.9);
+      transform-origin: 65% 50%;
     }
   </style>
 </head>
@@ -54,19 +45,46 @@
   <div id="map-container"></div>
 
   <script>
-    // 自動讀取同目錄下的原版 SVG 檔案
-    fetch('Taiwan map labeled.svg')
+    // 支援檔名包含空格的 URL 編碼
+    const svgFileName = encodeURIComponent('Taiwan map labeled.svg').replace(/%20/g, ' ');
+
+    fetch(svgFileName)
       .then(response => {
-        if (!response.ok) {
-          throw new Error('找不到 Taiwan map labeled.svg 檔案');
-        }
+        if (!response.ok) throw new Error('找不到 SVG 檔案');
         return response.text();
       })
       .then(svgText => {
-        document.getElementById('map-container').innerHTML = svgText;
+        const container = document.getElementById('map-container');
+        container.innerHTML = svgText;
+        const svg = container.querySelector('svg');
+
+        if (svg) {
+          // 離島與不需要的關鍵字清單
+          const hideKeywords = ['福建', '金門', '連江', '澎湖', '馬祖'];
+
+          // 1. 隱藏外框線視窗與圖例
+          const box = svg.querySelector('#box');
+          if (box) box.style.display = 'none';
+
+          // 2. 遍歷所有 SVG 元素，文字或屬性符合就強制隱藏
+          const allElements = svg.querySelectorAll('*');
+          allElements.forEach(el => {
+            const id = el.id || '';
+            const title = el.getAttribute('title') || '';
+            const text = el.textContent || '';
+
+            const shouldHide = hideKeywords.some(kw => 
+              id.includes(kw) || title.includes(kw) || text.includes(kw)
+            );
+
+            if (shouldHide) {
+              el.style.display = 'none';
+            }
+          });
+        }
       })
-      .catch(error => {
-        console.error('SVG 載入錯誤:', error);
+      .catch(err => {
+        console.error('載入失敗：', err);
       });
   </script>
 </body>
