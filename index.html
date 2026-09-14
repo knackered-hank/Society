@@ -17,15 +17,20 @@
     #map-container { width: 100%; height: 100%; transform-origin: 0 0; }
     svg { width: 100%; height: 100%; object-fit: contain; }
 
-    /* 行政區互動與隱藏設定 */
+    /* 關鍵修復：讓 SVG 內所有元素失去點擊判定，避免透明文字擋住滑鼠 */
+    svg * { pointer-events: none !important; }
+
+    /* 只有 Path (行政區塊) 允許被點擊 */
     svg path {
+      pointer-events: auto !important;
       transition: fill 0.2s, filter 0.2s;
-      cursor: pointer; stroke: #ffffff; stroke-width: 1px; pointer-events: auto;
+      cursor: pointer; stroke: #ffffff; stroke-width: 1px;
     }
     svg path:hover {
       fill: #fcd34d !important;
       filter: drop-shadow(0 0 12px rgba(252, 211, 77, 0.8));
     }
+    
     text, #box, path[title*="連江"], path[title*="金門"], path[title*="澎湖"] { display: none !important; }
 
     /* 解答彈出視窗 */
@@ -59,12 +64,10 @@
       border-radius: 12px; display: flex; justify-content: center; align-items: center;
       color: #64748b; font-weight: bold; font-size: 20px; overflow: hidden;
     }
-
     .hint {
       position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%);
       font-size: 18px; background: rgba(30, 41, 59, 0.9); padding: 12px 24px;
       border-radius: 30px; pointer-events: none; z-index: 100;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.3); border: 1px solid #475569;
     }
   </style>
 </head>
@@ -73,9 +76,9 @@
   <div id="modal-overlay">
     <div id="answer-modal">
       <div class="close-btn" onclick="closeModal()">✖</div>
-      <div class="modal-title" id="m-title">地形名稱</div>
-      <div class="modal-reason" id="m-reason">成因簡介</div>
-      <div class="modal-desc" id="m-desc">詳細介紹</div>
+      <div class="modal-title" id="m-title">載入中...</div>
+      <div class="modal-reason" id="m-reason">載入中...</div>
+      <div class="modal-desc" id="m-desc">載入中...</div>
       <div class="modal-img-placeholder" id="m-img">🖼️ 請在此處插入您的圖片</div>
     </div>
   </div>
@@ -83,89 +86,50 @@
   <div id="map-wrapper">
     <div id="map-container"></div>
   </div>
-  <div class="hint">👆 滾輪縮放地圖・按住拖曳平移・點擊區塊顯示地形教學</div>
+  <div class="hint">👆 點擊地圖區塊顯示地形・滾輪縮放・按住拖曳</div>
 
   <script>
-    // --- 1. 行政區對應群組設定 (點擊同群組的縣市會跳出相同的地形資料) ---
+    // --- 1. 同時支援中文標籤與英文 ID 對應 ---
     const regionMapping = {
-      '基隆市': 'keelung',
-      '臺北市': 'taipei', '台北市': 'taipei', '新北市': 'taipei',
-      '桃園市': 'taoyuan',
-      '新竹市': 'zhumiao', '新竹縣': 'zhumiao', '苗栗縣': 'zhumiao',
-      '臺中市': 'taichung', '台中市': 'taichung',
-      '彰化縣': 'changhua',
-      '南投縣': 'nantou',
-      '雲林縣': 'jianan', '嘉義市': 'jianan', '嘉義縣': 'jianan', '臺南市': 'jianan', '台南市': 'jianan',
-      '高雄市': 'kaoping', '屏東縣': 'kaoping',
-      '宜蘭縣': 'yilan',
-      '花蓮縣': 'huadong', '臺東縣': 'huadong', '台東縣': 'huadong'
+      '基隆市': 'keelung', 'TW-KEE': 'keelung',
+      '臺北市': 'taipei', '台北市': 'taipei', '新北市': 'taipei', 'TW-TPE': 'taipei', 'TW-NTP': 'taipei',
+      '桃園市': 'taoyuan', 'TW-TYC': 'taoyuan',
+      '新竹市': 'zhumiao', '新竹縣': 'zhumiao', '苗栗縣': 'zhumiao', 'TW-HSZ': 'zhumiao', 'TW-HSC': 'zhumiao', 'TW-MAL': 'zhumiao',
+      '臺中市': 'taichung', '台中市': 'taichung', 'TW-TXG': 'taichung',
+      '彰化縣': 'changhua', 'TW-CWH': 'changhua',
+      '南投縣': 'nantou', 'TW-NTO': 'nantou',
+      '雲林縣': 'jianan', '嘉義市': 'jianan', '嘉義縣': 'jianan', '臺南市': 'jianan', '台南市': 'jianan', 
+      'TW-YUN': 'jianan', 'TW-CYI': 'jianan', 'TW-CHI': 'jianan', 'TW-TNN': 'jianan',
+      '高雄市': 'kaoping', '屏東縣': 'kaoping', 'TW-KHH': 'kaoping', 'TW-PTH': 'kaoping',
+      '宜蘭縣': 'yilan', 'TW-ILA': 'yilan',
+      '花蓮縣': 'huadong', '臺東縣': 'huadong', '台東縣': 'huadong', 'TW-HWA': 'huadong', 'TW-TTT': 'huadong'
     };
 
-    // --- 2. 臺灣地形題庫資料庫 ---
+    // --- 2. 臺灣地形題庫 (維持原樣) ---
     const geoData = {
-      'keelung': {
-        title: '谷灣式海岸 (岬灣地形)', reason: '丘陵沉降、海水入侵',
-        desc: '海岸線曲折，多岬角與海灣，水深利於建港，因此基隆港成為北臺灣重要良港。',
-        imgHint: '🖼️ 建議放入基隆海岸或港口圖'
-      },
-      'taipei': {
-        title: '臺北盆地', reason: '斷層陷落與河流沖積',
-        desc: '四周被大屯火山群、林口臺地與雪山山脈環繞。因地形封閉，夏季容易產生悶熱的「盆地效應」。',
-        imgHint: '🖼️ 建議放入臺北盆地空照圖'
-      },
-      'taoyuan': {
-        title: '桃園臺地', reason: '古石門溪沖積扇隆起',
-        desc: '地勢平坦但略高於海平面。因缺乏大型河川，先民廣建「埤塘」蓄水灌溉，形成獨特的千塘之鄉景觀。',
-        imgHint: '🖼️ 建議放入埤塘空照圖'
-      },
-      'zhumiao': {
-        title: '竹苗丘陵', reason: '河川切割與地殼抬升',
-        desc: '地勢起伏和緩，氣候適合茶樹生長，是臺灣東方美人茶的重要產地。',
-        imgHint: '🖼️ 建議放入茶園梯田景觀圖'
-      },
-      'taichung': {
-        title: '臺中盆地 / 大肚臺地', reason: '板塊擠壓與斷層作用',
-        desc: '臺中盆地是臺灣最大盆地，其西緣隆起了大肚臺地。氣候溫和，為中部重要農業與都會樞紐。',
-        imgHint: '🖼️ 建議放入大肚臺地剖面圖'
-      },
-      'changhua': {
-        title: '彰化平原', reason: '濁水溪等河川沖積而成',
-        desc: '土壤肥沃且有八堡圳灌溉，農業發達，素有「臺灣穀倉」的美譽。',
-        imgHint: '🖼️ 建議放入平原稻田景觀圖'
-      },
-      'nantou': {
-        title: '埔里盆地 / 中央山脈', reason: '斷層陷落 / 板塊擠壓',
-        desc: '南投是全臺唯一不靠海的縣市，境內多高山（中央山脈），並有著名的埔里盆地與日月潭。',
-        imgHint: '🖼️ 建議放入埔里或高山圖'
-      },
-      'jianan': {
-        title: '嘉南平原', reason: '多條河川(如曾文溪)長期沖積',
-        desc: '臺灣面積最大的平原！西部沿海地勢低平，常有沙洲與潟湖地形，早期多闢為鹽田或魚塭。',
-        imgHint: '🖼️ 建議放入潟湖或嘉南大圳圖'
-      },
-      'kaoping': {
-        title: '高屏平原 / 恆春半島', reason: '高屏溪沖積 / 珊瑚礁隆起',
-        desc: '高屏平原是臺灣第二大平原；最南端的恆春半島則佈滿珊瑚礁石灰岩地形，熱帶氣候顯著。',
-        imgHint: '🖼️ 建議放入珊瑚礁海岸圖'
-      },
-      'yilan': {
-        title: '蘭陽平原', reason: '蘭陽溪沖積扇',
-        desc: '地形呈現向海開口的畚箕狀。冬季迎東北季風，降雨豐沛，是臺灣著名的多雨地區。',
-        imgHint: '🖼️ 建議放入蘭陽平原鳥瞰圖'
-      },
-      'huadong': {
-        title: '花東縱谷 / 海岸山脈', reason: '菲律賓海板塊與歐亞板塊擠壓',
-        desc: '花東縱谷夾在中央山脈與海岸山脈之間，呈狹長形平原；海岸山脈則是板塊碰撞擠壓隆起的結果。',
-        imgHint: '🖼️ 建議放入花東縱谷圖'
-      }
+      'keelung': { title: '谷灣式海岸 (岬灣地形)', reason: '丘陵沉降、海水入侵', desc: '海岸線曲折，水深利於建港，為北臺灣重要良港。', imgHint: '🖼️ 建議放入基隆海岸或港口圖' },
+      'taipei': { title: '臺北盆地', reason: '斷層陷落與河流沖積', desc: '四周被火山與山脈環繞。因地形封閉，夏季易產生悶熱的盆地效應。', imgHint: '🖼️ 建議放入臺北盆地空照圖' },
+      'taoyuan': { title: '桃園臺地', reason: '古石門溪沖積扇隆起', desc: '地勢平坦。因缺乏大型河川，先民廣建「埤塘」蓄水，形成千塘之鄉。', imgHint: '🖼️ 建議放入埤塘空照圖' },
+      'zhumiao': { title: '竹苗丘陵', reason: '河川切割與地殼抬升', desc: '地勢起伏和緩，氣候適合茶樹生長，是東方美人茶產地。', imgHint: '🖼️ 建議放入茶園梯田圖' },
+      'taichung': { title: '臺中盆地 / 大肚臺地', reason: '板塊擠壓與斷層作用', desc: '全臺最大盆地，西緣隆起了大肚臺地。氣候溫和為農業與都會樞紐。', imgHint: '🖼️ 建議放入大肚臺地剖面圖' },
+      'changhua': { title: '彰化平原', reason: '濁水溪等河川沖積', desc: '土壤肥沃且有八堡圳灌溉，農業發達，素有「臺灣穀倉」美譽。', imgHint: '🖼️ 建議放入平原稻田圖' },
+      'nantou': { title: '埔里盆地 / 中央山脈', reason: '斷層陷落 / 板塊擠壓', desc: '全臺唯一不靠海的縣市，境內多高山，並有著名的埔里盆地。', imgHint: '🖼️ 建議放入埔里或高山圖' },
+      'jianan': { title: '嘉南平原', reason: '多條河川長期沖積', desc: '臺灣最大平原！沿岸地勢低平，常有沙洲與潟湖地形，早期多闢為鹽田。', imgHint: '🖼️ 建議放入潟湖圖' },
+      'kaoping': { title: '高屏平原 / 恆春半島', reason: '高屏溪沖積 / 珊瑚礁隆起', desc: '最南端恆春半島佈滿珊瑚礁石灰岩，熱帶氣候顯著。', imgHint: '🖼️ 建議放入珊瑚礁海岸圖' },
+      'yilan': { title: '蘭陽平原', reason: '蘭陽溪沖積扇', desc: '地形呈向海開口的畚箕狀。冬季迎東北季風，降雨豐沛。', imgHint: '🖼️ 建議放入蘭陽平原圖' },
+      'huadong': { title: '花東縱谷 / 海岸山脈', reason: '板塊擠壓', desc: '縱谷夾在中央與海岸山脈間，呈狹長形平原；海岸山脈為板塊擠壓隆起。', imgHint: '🖼️ 建議放入花東縱谷圖' }
     };
 
-    // --- 3. 載入 SVG 與事件綁定 ---
+    // --- 3. 載入 SVG 與全新絕對點擊事件 ---
     const container = document.getElementById('map-container');
-    let isDragging = false; // 判斷是否正在拖曳的標籤
+    const wrapper = document.getElementById('map-wrapper');
+    const modalOverlay = document.getElementById('modal-overlay');
+
+    let scale = 1, panning = false, pointX = 0, pointY = 0, start = { x: 0, y: 0 };
+    let downX = 0, downY = 0; // 記錄點下時的座標，用來分辨是「拖曳」還是「點擊」
 
     fetch('map.svg')
-      .then(res => { if (!res.ok) throw new Error('找不到 map.svg'); return res.text(); })
+      .then(res => res.text())
       .then(svgText => {
         container.innerHTML = svgText;
         const svg = container.querySelector('svg');
@@ -173,84 +137,75 @@
           svg.setAttribute('viewBox', '0 0 1440 2055');
           svg.removeAttribute('width'); svg.removeAttribute('height');
 
-          // 綁定行政區點擊 (避開拖曳誤觸)
-          const paths = svg.querySelectorAll('path');
-          paths.forEach(path => {
-            const countyName = path.getAttribute('title');
-            if (countyName) {
-              path.addEventListener('click', (e) => {
-                if (isDragging) return; // 如果正在拖曳，就不觸發點擊
-                
-                const regionKey = regionMapping[countyName];
-                const data = geoData[regionKey] || { 
-                  title: countyName, reason: '未分類區域', desc: '尚無資料', imgHint: '🖼️'
-                };
-                
-                // 為了讓顯示的標題包含點擊的縣市名 + 地形名
-                const displayData = { ...data, title: `【${countyName}】 ${data.title}` };
-                openModal(displayData);
+          // 將點擊事件綁定在整張 SVG 上，確保絕對能觸發
+          svg.addEventListener('click', (e) => {
+            // 如果滑鼠移動超過 5px，判定為拖曳，不觸發解答
+            if (Math.abs(e.clientX - downX) > 5 || Math.abs(e.clientY - downY) > 5) return;
+
+            // 尋找被點擊的 <path> 區塊
+            const path = e.target.closest('path');
+            if (!path) return;
+
+            // 多重抓取：抓 title、抓 id、抓內層 <title> 標籤
+            const pathTitle = path.getAttribute('title') || '';
+            const pathId = path.getAttribute('id') || '';
+            const innerTitle = path.querySelector('title') ? path.querySelector('title').textContent : '';
+            
+            const rawName = pathTitle || innerTitle || pathId;
+            const regionKey = regionMapping[pathTitle] || regionMapping[innerTitle] || regionMapping[pathId];
+
+            if (regionKey && geoData[regionKey]) {
+              const data = geoData[regionKey];
+              const displayName = pathTitle || innerTitle || '此區域';
+              openModal({ ...data, title: `【${displayName}】 ${data.title}` });
+            } else {
+              // 防呆機制：有點到東西但沒對應到，強制顯示 ID
+              openModal({
+                title: `未綁定區域 (偵測到代碼: ${rawName})`,
+                reason: '資料庫中尚未建立此區域的連線',
+                desc: '如果您看到這段文字，代表點擊功能正常，但區域代碼需要加入 regionMapping 裡！',
+                imgHint: '🖼️'
               });
             }
           });
         }
-      })
-      .catch(err => container.innerHTML = `<div style="color:red; padding:20px;">載入失敗：${err.message}</div>`);
+      });
 
     // --- 4. 視窗控制 ---
-    const modalOverlay = document.getElementById('modal-overlay');
     function openModal(data) {
       document.getElementById('m-title').innerText = data.title;
       document.getElementById('m-reason').innerText = `💡 成因：${data.reason}`;
       document.getElementById('m-desc').innerText = data.desc;
-      document.getElementById('m-img').innerHTML = data.imgHint; // 使用 innerHTML 支援未來放入 <img> 標籤
+      document.getElementById('m-img').innerHTML = data.imgHint;
       modalOverlay.classList.add('active');
     }
     function closeModal() { modalOverlay.classList.remove('active'); }
     modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
 
-    // --- 5. 修正版平移與縮放 (解決與點擊衝突) ---
-    const wrapper = document.getElementById('map-wrapper');
-    let scale = 1, panning = false, pointX = 0, pointY = 0, start = { x: 0, y: 0 };
-    let dragStartX = 0, dragStartY = 0;
-
-    function setTransform() {
-      container.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
-    }
+    // --- 5. 拖曳平移與縮放 ---
+    function setTransform() { container.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`; }
 
     wrapper.addEventListener('mousedown', (e) => {
       if(modalOverlay.classList.contains('active')) return;
-      isDragging = false;
-      dragStartX = e.clientX;
-      dragStartY = e.clientY;
+      downX = e.clientX; downY = e.clientY; // 記錄初始點擊位置
       start = { x: e.clientX - pointX, y: e.clientY - pointY };
       panning = true;
     });
 
     window.addEventListener('mouseup', () => panning = false);
-    
     wrapper.addEventListener('mousemove', (e) => {
       if (!panning) return;
-      // 如果滑鼠移動超過 3px 才判定為拖曳，避免誤觸點擊
-      if (Math.abs(e.clientX - dragStartX) > 3 || Math.abs(e.clientY - dragStartY) > 3) {
-        isDragging = true; 
-      }
-      pointX = e.clientX - start.x;
-      pointY = e.clientY - start.y;
+      pointX = e.clientX - start.x; pointY = e.clientY - start.y;
       setTransform();
     });
 
     wrapper.addEventListener('wheel', (e) => {
       if(modalOverlay.classList.contains('active')) return;
       e.preventDefault();
-      const xs = (e.clientX - pointX) / scale;
-      const ys = (e.clientY - pointY) / scale;
-      const delta = (e.wheelDelta ? e.wheelDelta : -e.deltaY);
-      
-      if (delta > 0) scale *= 1.15; else scale /= 1.15;
+      const xs = (e.clientX - pointX) / scale, ys = (e.clientY - pointY) / scale;
+      scale *= e.wheelDelta > 0 ? 1.15 : (1 / 1.15);
       scale = Math.max(0.4, Math.min(scale, 6));
-      
-      pointX = e.clientX - xs * scale;
-      pointY = e.clientY - ys * scale;
+      pointX = e.clientX - xs * scale; pointY = e.clientY - ys * scale;
       setTransform();
     }, { passive: false });
   </script>
