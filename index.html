@@ -3,33 +3,45 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>台灣地形盲圖測驗</title>
+  <title>台灣地形盲圖測驗 (支援縮放平移)</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      display: flex; justify-content: center; align-items: center;
       width: 100vw; height: 100vh; background-color: #1e293b; overflow: hidden;
       font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+      color: #f8fafc;
     }
     
-    #map-container { width: 100%; height: 95vh; display: flex; justify-content: center; }
+    /* 地圖容器與縮放控制 */
+    #map-wrapper {
+      width: 100%; height: 100%;
+      cursor: grab;
+      position: relative;
+    }
+    #map-wrapper:active { cursor: grabbing; }
     
+    #map-container {
+      width: 100%; height: 100%;
+      transform-origin: 0 0; /* 縮放基準點設為左上，由 JS 運算 */
+    }
+
+    /* 確保 SVG 初始大小適應螢幕 */
     svg {
-      width: 100%; height: 100%; max-height: 95vh;
-      transform: scale(0.95); transform-origin: center center;
+      width: 100%; height: 100%;
+      object-fit: contain;
     }
 
     /* 互動與浮出動畫設定 */
     svg path {
-      transition: all 0.2s ease-in-out;
+      transition: fill 0.2s, filter 0.2s;
       cursor: pointer;
       stroke: #ffffff;
       stroke-width: 1px;
+      pointer-events: auto;
     }
     svg path:hover {
-      transform: translateY(-5px);
       fill: #facc15 !important;
-      filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.6));
+      filter: drop-shadow(0 0 10px rgba(250, 204, 21, 0.8));
     }
 
     /* 強制隱藏所有地名文字與離島，變成盲圖 */
@@ -38,86 +50,192 @@
       display: none !important;
     }
 
-    /* 點擊跳出的解答視窗 */
+    /* 全新解答彈出視窗 (Modal) */
+    #modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0, 0, 0, 0.6);
+      display: none; justify-content: center; align-items: center;
+      z-index: 1000; opacity: 0; transition: opacity 0.3s;
+    }
     #answer-modal {
-      position: absolute; top: 10%; left: 50%; transform: translateX(-50%);
-      background: rgba(255, 255, 255, 0.95); color: #0f172a;
-      padding: 20px 40px; border-radius: 50px;
-      font-size: 32px; font-weight: bold;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-      opacity: 0; transition: opacity 0.3s; pointer-events: none;
-      z-index: 100;
+      background: #ffffff; color: #0f172a;
+      padding: 30px; border-radius: 20px;
+      width: 90%; max-width: 500px;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5);
+      position: relative;
+      transform: translateY(20px); transition: transform 0.3s;
     }
+    #modal-overlay.active { display: flex; opacity: 1; }
+    #modal-overlay.active #answer-modal { transform: translateY(0); }
     
-    .hint {
-      position: absolute; bottom: 30px; font-size: 20px; color: #94a3b8; font-weight: bold;
+    .close-btn {
+      position: absolute; top: 15px; right: 20px;
+      font-size: 24px; cursor: pointer; color: #64748b;
     }
-    .error { color: #ef4444; font-size: 24px; position: absolute; z-index: 999; }
+    .close-btn:hover { color: #ef4444; }
+    
+    .modal-title { font-size: 32px; font-weight: bold; margin-bottom: 10px; color: #2563eb; }
+    .modal-reason { font-size: 18px; font-weight: bold; color: #b45309; margin-bottom: 15px; background: #fef3c7; padding: 10px; border-radius: 8px;}
+    .modal-desc { font-size: 16px; line-height: 1.6; margin-bottom: 20px; }
+    .modal-img-placeholder {
+      width: 100%; height: 200px; background: #e2e8f0; border: 2px dashed #94a3b8;
+      border-radius: 10px; display: flex; justify-content: center; align-items: center;
+      color: #64748b; font-weight: bold; font-size: 18px;
+    }
+
+    .hint {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      font-size: 18px; background: rgba(15, 23, 42, 0.8); padding: 10px 20px;
+      border-radius: 30px; pointer-events: none; z-index: 100;
+    }
+    .error { color: #ef4444; padding: 20px; font-size: 20px; }
   </style>
 </head>
 <body>
 
-  <div id="answer-modal">解答會顯示在這裡</div>
-  <div id="map-container"></div>
-  <div class="hint">👆 請學生點擊地圖上的區塊，顯示對應地形</div>
+  <!-- 解答彈出視窗 -->
+  <div id="modal-overlay">
+    <div id="answer-modal">
+      <div class="close-btn" onclick="closeModal()">✖</div>
+      <div class="modal-title" id="m-title">地形名稱</div>
+      <div class="modal-reason" id="m-reason">成因簡介</div>
+      <div class="modal-desc" id="m-desc">詳細介紹</div>
+      <div class="modal-img-placeholder" id="m-img">🖼️ 請在此處插入您的圖片</div>
+    </div>
+  </div>
+
+  <div id="map-wrapper">
+    <div id="map-container"></div>
+  </div>
+  <div class="hint">👆 滾輪縮放地圖・按住拖曳平移・點擊區塊顯示地形教學</div>
 
   <script>
-    // 台灣各地代表地形資料庫 (可隨時自行增減修改)
+    // --- 題庫資料庫 (可自行修改與新增) ---
     const geoData = {
-      '基隆市': '谷灣式海岸 (基隆港)',
-      '臺北市': '臺北盆地',
-      '新北市': '林口臺地 / 火山',
-      '桃園市': '桃園臺地',
-      '新竹市': '新竹平原',
-      '新竹縣': '新竹丘陵',
-      '苗栗縣': '苗栗丘陵',
-      '臺中市': '臺中盆地 / 大肚臺地',
-      '彰化縣': '彰化平原',
-      '南投縣': '埔里盆地 / 中央山脈',
-      '雲林縣': '嘉南平原',
-      '嘉義市': '嘉南平原',
-      '嘉義縣': '嘉南平原 / 阿里山',
-      '臺南市': '嘉南平原 / 潟湖',
-      '高雄市': '高屏平原',
-      '屏東縣': '屏東平原 / 恆春半島',
-      '宜蘭縣': '蘭陽平原',
-      '花蓮縣': '花東縱谷平原',
-      '臺東縣': '海岸山脈 / 縱谷'
+      '臺北市': {
+        title: '臺北盆地',
+        reason: '斷層陷落與河流沖積而成',
+        desc: '四周被大屯火山群、林口臺地與雪山山脈環繞。因地形封閉，夏季容易產生悶熱的盆地效應。這裡是臺灣的政經中心。',
+        imgHint: '🖼️ (建議放入臺北101或盆地空照圖)'
+      },
+      '臺中市': {
+        title: '臺中盆地 / 大肚臺地',
+        reason: '板塊擠壓與河流沖積',
+        desc: '臺中盆地是臺灣最大盆地，西側邊緣隆起了大肚臺地。氣候溫和，是中部的重要農業與都會樞紐。',
+        imgHint: '🖼️ (建議放入大肚臺地剖面圖)'
+      },
+      '苗栗縣': {
+        title: '苗栗丘陵',
+        reason: '河流切割與地殼抬升',
+        desc: '素有「山城」之稱，地形多為起伏和緩的丘陵，非常適合種植茶葉與水果（如草莓）。',
+        imgHint: '🖼️ (建議放入茶園或梯田景觀圖)'
+      },
+      '南投縣': {
+        title: '埔里盆地 / 中央山脈',
+        reason: '地層斷裂陷落',
+        desc: '位於臺灣地理中心，是被群山環抱的典型盆地。水質優良，氣候宜人，周圍緊鄰高聳的中央山脈。',
+        imgHint: '🖼️ (建議放入埔里盆地鳥瞰圖)'
+      },
+      '桃園市': {
+        title: '桃園臺地',
+        reason: '古石門溪沖積扇隆起',
+        desc: '地表平坦但略高於海平面，因為缺乏大型河川，先民開鑿了許多「埤塘」來蓄水灌溉，形成千塘之鄉的景觀。',
+        imgHint: '🖼️ (建議放入埤塘空照圖)'
+      },
+      // 若沒有建檔的縣市，會顯示預設文字
+      'default': {
+        title: '準備中', reason: '地形特徵', desc: '老師還在準備此處的詳細地理介紹喔！', imgHint: '🖼️ 圖片準備中'
+      }
     };
 
+    // --- 1. 載入 SVG 與地圖初始化 ---
     const container = document.getElementById('map-container');
-    const modal = document.getElementById('answer-modal');
-
-    // 載入改名後的 map.svg
     fetch('map.svg')
-      .then(response => {
-        if (!response.ok) throw new Error('找不到 map.svg，請確定檔案名稱沒有任何空格並已上傳至 GitHub');
-        return response.text();
-      })
+      .then(res => { if (!res.ok) throw new Error('找不到 map.svg'); return res.text(); })
       .then(svgText => {
         container.innerHTML = svgText;
         const svg = container.querySelector('svg');
-
         if (svg) {
+          // 強制設定 viewBox 確保全島可見，忽略原檔寫死的寬高
+          svg.setAttribute('viewBox', '0 0 1440 2055');
+          svg.removeAttribute('width');
+          svg.removeAttribute('height');
+
           // 綁定點擊事件
           const paths = svg.querySelectorAll('path');
           paths.forEach(path => {
             const countyName = path.getAttribute('title');
-            if (countyName && geoData[countyName]) {
+            if (countyName) {
               path.addEventListener('click', (e) => {
-                modal.innerHTML = `【${countyName}】 ${geoData[countyName]}`;
-                modal.style.opacity = 1;
-                
-                // 3 秒後自動隱藏解答
-                setTimeout(() => { modal.style.opacity = 0; }, 3000);
+                e.stopPropagation(); // 防止觸發背景平移
+                const data = geoData[countyName] || { ...geoData['default'], title: countyName };
+                openModal(countyName, data);
               });
             }
           });
         }
       })
-      .catch(err => {
-        container.innerHTML = `<div class="error">載入失敗：${err.message}</div>`;
-      });
+      .catch(err => container.innerHTML = `<div class="error">載入失敗：${err.message}</div>`);
+
+    // --- 2. 視窗控制邏輯 ---
+    const modalOverlay = document.getElementById('modal-overlay');
+    function openModal(county, data) {
+      document.getElementById('m-title').innerText = `【${county}】 ${data.title}`;
+      document.getElementById('m-reason').innerText = `💡 成因：${data.reason}`;
+      document.getElementById('m-desc').innerText = data.desc;
+      document.getElementById('m-img').innerText = data.imgHint;
+      modalOverlay.classList.add('active');
+    }
+    function closeModal() {
+      modalOverlay.classList.remove('active');
+    }
+    // 點擊背景關閉視窗
+    modalOverlay.addEventListener('click', (e) => {
+      if (e.target === modalOverlay) closeModal();
+    });
+
+    // --- 3. 平移與縮放 (Pan & Zoom) 邏輯 ---
+    const wrapper = document.getElementById('map-wrapper');
+    let scale = 1, panning = false, pointX = 0, pointY = 0, start = { x: 0, y: 0 };
+
+    function setTransform() {
+      container.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
+    }
+
+    // 拖曳平移
+    wrapper.addEventListener('mousedown', (e) => {
+      if(modalOverlay.classList.contains('active')) return;
+      e.preventDefault();
+      start = { x: e.clientX - pointX, y: e.clientY - pointY };
+      panning = true;
+    });
+    wrapper.addEventListener('mouseup', () => panning = false);
+    wrapper.addEventListener('mouseleave', () => panning = false);
+    wrapper.addEventListener('mousemove', (e) => {
+      if (!panning) return;
+      pointX = e.clientX - start.x;
+      pointY = e.clientY - start.y;
+      setTransform();
+    });
+
+    // 滾輪縮放 (以滑鼠位置為中心)
+    wrapper.addEventListener('wheel', (e) => {
+      if(modalOverlay.classList.contains('active')) return;
+      e.preventDefault();
+      const xs = (e.clientX - pointX) / scale;
+      const ys = (e.clientY - pointY) / scale;
+      const delta = (e.wheelDelta ? e.wheelDelta : -e.deltaY);
+      
+      if (delta > 0) scale *= 1.1; // 放大
+      else scale /= 1.1;           // 縮小
+      
+      // 限制縮放範圍
+      scale = Math.max(0.5, Math.min(scale, 5));
+      
+      pointX = e.clientX - xs * scale;
+      pointY = e.clientY - ys * scale;
+      setTransform();
+    }, { passive: false });
   </script>
 </body>
 </html>
