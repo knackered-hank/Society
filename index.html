@@ -29,6 +29,46 @@
             padding: 20px;
             background: #1e293b;
             position: relative;
+            overflow: hidden;
+            cursor: grab;
+            user-select: none;
+        }
+
+        .map-container:active {
+            cursor: grabbing;
+        }
+
+        /* 縮放與控制按鈕面板 */
+        .zoom-controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 10;
+        }
+
+        .zoom-btn {
+            width: 40px;
+            height: 40px;
+            background: #334155;
+            color: #f8fafc;
+            border: 1px solid #475569;
+            border-radius: 8px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: all 0.2s ease;
+        }
+
+        .zoom-btn:hover {
+            background: #0284c7;
+            border-color: #38bdf8;
         }
 
         /* 注入的 SVG 地圖樣式重設與控制 */
@@ -38,11 +78,13 @@
             max-width: 900px;
             max-height: 92vh;
             filter: drop-shadow(0 12px 15px rgba(0, 0, 0, 0.4));
+            transform-origin: center center;
+            will-change: transform;
         }
 
         /* 縣市 Path hover & active 效果 */
         .map-container path, .map-container polygon, .map-container g {
-            transition: all 0.2s ease;
+            transition: fill 0.2s ease, stroke 0.2s ease;
         }
 
         .map-container path {
@@ -75,6 +117,7 @@
             gap: 24px;
             box-shadow: -8px 0 25px rgba(0, 0, 0, 0.3);
             overflow-y: auto;
+            z-index: 20;
         }
 
         .info-header {
@@ -133,6 +176,13 @@
 
     <!-- 地圖放置區 -->
     <div class="map-container" id="map-container">
+        <!-- 放大縮放控制按鈕 -->
+        <div class="zoom-controls">
+            <button class="zoom-btn" id="btn-zoom-in" title="放大">+</button>
+            <button class="zoom-btn" id="btn-zoom-out" title="縮小">-</button>
+            <button class="zoom-btn" id="btn-reset" title="重置位置與縮放">↺</button>
+        </div>
+
         <div class="loading" id="loading-text">🗺️ 正在載入 Taiwan map generated.svg ...</div>
     </div>
 
@@ -222,7 +272,7 @@
                 terrain: "屏東平原 / 恆春半島",
                 description: "北部為高屏溪沖積形成的廣大「屏東平原」，南部延伸為「恆春半島」。受台地、高位珊瑚礁地形與熱帶季風影響，落山風極強，包含墾丁國家公園。"
             },
-      "高雄市": {
+            "高雄市": {
                 terrain: "高雄平原 / 高雄港灣 / 壽山珊瑚礁",
                 description: "地形橫跨高山（玉山山脈尾稜）、丘陵、高雄平原與潟湖港灣（高雄港）。壽山與半屏山為隆起珊瑚礁石灰岩地形，為南部最大港都與工業重鎮。"
             },
@@ -256,32 +306,114 @@
         const geoTerrainEl = document.getElementById('geo-terrain');
         const descriptionEl = document.getElementById('description');
 
-        // 動態讀取同目錄下的 SVG 檔案
+        // 縮放與拖曳變數控制
+        let scale = 1;
+        let translateX = 0;
+        let translateY = 0;
+        let isDragging = false;
+        let startX = 0, startY = 0;
+        let hasDragged = false; // 用於區分「純點擊」還是「拖曳移動」
+
+        // 讀取 SVG 檔案
         fetch('Taiwan map generated.svg')
             .then(res => {
-                if (!res.ok) throw new Error("無法找到 Taiwan map generated.svg 檔案");
+                if (!res.ok) throw new Error("無法找到 Taiwan map generated.svg");
                 return res.text();
             })
             .then(svgText => {
                 loadingText.remove();
-                mapContainer.innerHTML = svgText;
+                mapContainer.insertAdjacentHTML('beforeend', svgText);
+                initPanZoom();
                 bindSvgEvents();
             })
-            .catch(err => {
-                // 如果檔名大小寫或空格有差異，嘗試備用檔名
+            .catch(() => {
                 fetch('taiwan.svg')
                     .then(res => res.text())
                     .then(svgText => {
                         loadingText.remove();
-                        mapContainer.innerHTML = svgText;
+                        mapContainer.insertAdjacentHTML('beforeend', svgText);
+                        initPanZoom();
                         bindSvgEvents();
                     })
-                    .catch(e => {
+                    .catch(() => {
                         loadingText.innerHTML = "❌ 找不到地圖檔案！<br>請確認檔名為 <b>Taiwan map generated.svg</b> 並放在同一個資料夾內。";
                     });
             });
 
-        // 自動匹配 SVG 內部的縣市名稱
+        // 初始化拖曳與縮放控制
+        function initPanZoom() {
+            const svg = mapContainer.querySelector('svg');
+            if (!svg) return;
+
+            function applyTransform() {
+                svg.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+            }
+
+            // 1. 滑鼠滾輪縮放
+            mapContainer.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const zoomFactor = 1.15;
+                if (e.deltaY < 0) {
+                    scale = Math.min(scale * zoomFactor, 8); // 最大放 8 倍
+                } else {
+                    scale = Math.max(scale / zoomFactor, 1); // 最小 1 倍
+                    if (scale === 1) {
+                        translateX = 0;
+                        translateY = 0;
+                    }
+                }
+                applyTransform();
+            }, { passive: false });
+
+            // 2. 按住滑鼠拖曳移動
+            mapContainer.addEventListener('mousedown', (e) => {
+                if (e.button !== 0) return; // 僅限左鍵
+                isDragging = true;
+                hasDragged = false;
+                startX = e.clientX - translateX;
+                startY = e.clientY - translateY;
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const currentX = e.clientX - startX;
+                const currentY = e.clientY - startY;
+
+                // 如果移動距離超過 5px，認定為拖曳狀態，避免誤觸縣市點擊
+                if (Math.abs(currentX - translateX) > 5 || Math.abs(currentY - translateY) > 5) {
+                    hasDragged = true;
+                }
+
+                translateX = currentX;
+                translateY = currentY;
+                applyTransform();
+            });
+
+            window.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+
+            // 3. UI 控制按鈕綁定
+            document.getElementById('btn-zoom-in').onclick = () => {
+                scale = Math.min(scale * 1.3, 8);
+                applyTransform();
+            };
+
+            document.getElementById('btn-zoom-out').onclick = () => {
+                scale = Math.max(scale / 1.3, 1);
+                if (scale === 1) { translateX = 0; translateY = 0; }
+                applyTransform();
+            };
+
+            document.getElementById('btn-reset').onclick = () => {
+                scale = 1;
+                translateX = 0;
+                translateY = 0;
+                applyTransform();
+            };
+        }
+
+        // 自動匹配 SVG 內部的縣市名稱與點擊監聽
         function bindSvgEvents() {
             const allElements = mapContainer.querySelectorAll('path, polygon, g[id]');
 
@@ -298,6 +430,9 @@
                 if (matchedCounty) {
                     el.style.cursor = 'pointer';
                     el.addEventListener('click', (e) => {
+                        // 如果剛剛是在拖曳地圖，不要觸發縣市選取
+                        if (hasDragged) return;
+
                         e.stopPropagation();
                         
                         // 清除前次高亮
@@ -314,7 +449,6 @@
         function identifyCounty(rawStr) {
             if (!rawStr) return null;
             for (let county in geographyDatabase) {
-                // 處理台/臺字轉換與簡稱（如 南投, 桃園, 高雄）
                 let shortName = county.replace('臺', '台').replace('市', '').replace('縣', '');
                 let altCounty = county.replace('臺', '台');
                 
