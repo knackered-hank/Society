@@ -20,50 +20,62 @@
             overflow: hidden;
         }
 
-        /* 左側地圖區域 */
+        /* 地圖區域 */
         .map-container {
             flex: 1;
             display: flex;
             justify-content: center;
             align-items: center;
             padding: 20px;
-            position: relative;
+            background: #f1f5f9;
         }
 
         svg {
-            max-width: 100%;
+            width: 100%;
+            height: 100%;
+            max-width: 800px;
             max-height: 90vh;
-            filter: drop-shadow(0 10px 8px rgba(0, 0, 0, 0.04));
+            filter: drop-shadow(0 10px 8px rgba(0, 0, 0, 0.06));
         }
 
-        /* SVG 縣市區塊樣式 */
+        /* 縣市 Path 樣式 */
         .county-path {
             fill: #cbd5e1;
             stroke: #ffffff;
             stroke-width: 1.5;
-            transition: all 0.2s ease;
+            stroke-linejoin: round;
             cursor: pointer;
+            transition: all 0.2s ease;
         }
 
         .county-path:hover {
-            fill: #94a3b8;
-            transform: translateY(-2px);
+            fill: #64748b;
         }
 
         .county-path.active {
-            fill: #3b82f6;
+            fill: #0284c7;
         }
 
-        /* 右側資訊面板 */
+        /* 標籤文字樣式 */
+        .county-label {
+            font-size: 14px;
+            font-weight: bold;
+            fill: #1e293b;
+            pointer-events: none;
+            text-anchor: middle;
+            dominant-baseline: central;
+        }
+
+        /* 資訊面板 */
         .info-panel {
-            width: 400px;
+            width: 420px;
             background: #ffffff;
             border-left: 1px solid #e2e8f0;
-            padding: 30px;
+            padding: 35px 30px;
             display: flex;
             flex-direction: column;
             gap: 20px;
-            box-shadow: -4px 0 15px rgba(0, 0, 0, 0.05);
+            box-shadow: -4px 0 20px rgba(0, 0, 0, 0.05);
             overflow-y: auto;
         }
 
@@ -73,26 +85,27 @@
         }
 
         .county-title {
-            font-size: 1.8rem;
+            font-size: 2rem;
             font-weight: 700;
             color: #0f172a;
         }
 
         .common-name-badge {
             display: inline-block;
-            margin-top: 8px;
-            padding: 4px 12px;
-            background-color: #eff6ff;
-            color: #2563eb;
+            margin-top: 10px;
+            padding: 6px 14px;
+            background-color: #e0f2fe;
+            color: #0369a1;
             border-radius: 20px;
-            font-size: 0.95rem;
+            font-size: 1rem;
             font-weight: 600;
         }
 
         .info-content {
-            font-size: 1rem;
-            line-height: 1.7;
-            color: #475569;
+            font-size: 1.05rem;
+            line-height: 1.8;
+            color: #334155;
+            white-space: pre-line;
         }
 
         .placeholder-text {
@@ -105,26 +118,91 @@
 </head>
 <body>
 
-    <!-- 地圖呈現區域 -->
     <div class="map-container">
-        <svg id="taiwan-map" viewBox="0 0 500 700" xmlns="http://www.w3.org/2000/svg">
-            <!-- 示範用向量路徑 (可替換為完整地圖 Path) -->
-            <!-- 南投縣 -->
-            <path id="Nantou" class="county-path" data-name="南投縣" 
-                  d="M230,280 L290,270 L320,330 L280,410 L220,390 L200,330 Z" />
-            <!-- 新北市/台北區域示範 -->
-            <path id="Taipei" class="county-path" data-name="台北市" 
-                  d="M300,80 L340,70 L350,110 L310,120 Z" />
-            <!-- 連江縣(馬祖)示範 -->
-            <path id="Lienchiang" class="county-path" data-name="連江縣" 
-                  d="M50,50 L80,50 L80,80 L50,80 Z" />
+        <svg id="taiwan-map" viewBox="0 0 600 750" xmlns="http://www.w3.org/2000/svg">
+            <!-- 外海與離島外框裝飾 -->
+            <rect x="20" y="20" width="130" height="130" fill="none" stroke="#94a3b8" stroke-dasharray="4" stroke-width="1"/>
+            <text x="25" y="35" font-size="12" fill="#64748b">馬祖列島</text>
+            
+            <rect x="20" y="160" width="140" height="130" fill="none" stroke="#94a3b8" stroke-dasharray="4" stroke-width="1"/>
+            <text x="25" y="175" font-size="12" fill="#64748b">金門群島</text>
+
+            <g id="counties">
+                <!-- 離島區域 -->
+                <!-- 連江縣 (馬祖) -->
+                <path id="09007" class="county-path" data-name="連江縣" d="M35,60 L60,50 L85,65 L70,95 L40,85 Z"/>
+                <!-- 金門縣 -->
+                <path id="09020" class="county-path" data-name="金門縣" d="M35,210 L85,195 L135,225 L105,260 L45,245 Z"/>
+                <!-- 澎湖縣 -->
+                <path id="10015" class="county-path" data-name="澎湖縣" d="M120,380 L155,360 L170,410 L135,445 L105,420 Z"/>
+
+                <!-- 本島北部 -->
+                <!-- 基隆市 -->
+                <path id="10017" class="county-path" data-name="基隆市" d="M440,75 L458,68 L465,82 L448,90 Z"/>
+                <!-- 臺北市 -->
+                <path id="63000" class="county-path" data-name="臺北市" d="M410,95 L440,85 L448,115 L418,125 Z"/>
+                <!-- 新北市 -->
+                <path id="65000" class="county-path" data-name="新北市" d="M380,80 L440,55 L475,85 L445,150 L395,135 L375,100 Z"/>
+                <!-- 桃園市 -->
+                <path id="68000" class="county-path" data-name="桃園市" d="M335,105 L380,95 L395,145 L355,175 L325,135 Z"/>
+                <!-- 新竹市 -->
+                <path id="10018" class="county-path" data-name="新竹市" d="M312,142 L332,138 L338,155 L318,158 Z"/>
+                <!-- 新竹縣 -->
+                <path id="10003" class="county-path" data-name="新竹縣" d="M310,150 L355,140 L380,185 L335,210 L300,175 Z"/>
+                <!-- 宜蘭縣 -->
+                <path id="10002" class="county-path" data-name="宜蘭縣" d="M400,145 L450,140 L430,225 L375,200 Z"/>
+
+                <!-- 本島中部 -->
+                <!-- 苗栗縣 -->
+                <path id="10004" class="county-path" data-name="苗栗縣" d="M285,185 L335,180 L350,245 L295,250 Z"/>
+                <!-- 臺中市 -->
+                <path id="66000" class="county-path" data-name="臺中市" d="M265,250 L350,240 L380,290 L310,315 L255,280 Z"/>
+                <!-- 彰化縣 -->
+                <path id="10005" class="county-path" data-name="彰化縣" d="M220,290 L265,280 L285,340 L235,350 Z"/>
+                
+                <!-- ★ 南投縣 ★ -->
+                <path id="10007" class="county-path" data-name="南投縣" d="M285,310 L370,285 L395,380 L335,425 L280,375 Z"/>
+
+                <!-- 雲林縣 -->
+                <path id="10008" class="county-path" data-name="雲林縣" d="M205,355 L275,345 L285,400 L215,410 Z"/>
+
+                <!-- 本島南部 -->
+                <!-- 嘉義市 -->
+                <path id="10020" class="county-path" data-name="嘉義市" d="M228,422 L248,418 L252,435 L232,438 Z"/>
+                <!-- 嘉義縣 -->
+                <path id="10009" class="county-path" data-name="嘉義縣" d="M200,410 L285,395 L325,445 L260,475 L195,440 Z"/>
+                <!-- 臺南市 -->
+                <path id="67000" class="county-path" data-name="臺南市" d="M190,450 L260,445 L285,520 L210,540 Z"/>
+                <!-- 高雄市 -->
+                <path id="64000" class="county-path" data-name="高雄市" d="M235,510 L315,450 L345,540 L265,600 L220,560 Z"/>
+                <!-- 屏東縣 -->
+                <path id="10010" class="county-path" data-name="屏東縣" d="M255,595 L305,550 L320,680 L275,690 Z"/>
+
+                <!-- 本島東部 -->
+                <!-- 花蓮縣 -->
+                <path id="10014" class="county-path" data-name="花蓮縣" d="M375,205 L425,220 L385,410 L340,380 Z"/>
+                <!-- 臺東縣 -->
+                <path id="10013" class="county-path" data-name="臺東縣" d="M335,390 L385,415 L350,610 L295,540 Z"/>
+            </g>
+
+            <!-- 地圖標籤文字 -->
+            <g id="labels">
+                <text x="310" y="355" class="county-label">南投</text>
+                <text x="310" y="275" class="county-label">台中</text>
+                <text x="425" y="105" class="county-label">台北</text>
+                <text x="410" y="300" class="county-label">花蓮</text>
+                <text x="345" y="490" class="county-label">台東</text>
+                <text x="280" y="620" class="county-label">屏東</text>
+                <text x="270" y="540" class="county-label">高雄</text>
+                <text x="235" y="485" class="county-label">台南</text>
+            </g>
         </svg>
     </div>
 
-    <!-- 右側資訊顯示面板 -->
-    <div class="info-panel" id="info-panel">
+    <!-- 右側資料展示面板 -->
+    <div class="info-panel">
         <div class="placeholder-text" id="placeholder">
-            👈 請點擊地圖上的縣市查看詳細介紹
+            👈 請點擊地圖上的縣市查看常見名稱與詳細介紹
         </div>
 
         <div id="detail-card" style="display: none;">
@@ -139,23 +217,99 @@
     </div>
 
     <script>
-        // 縣市資料庫
+        // 台灣 22 縣市資料庫
         const countyDatabase = {
             "南投縣": {
                 commonName: "埔里盆地（台灣之心）",
-                description: "埔里盆地地位於南投縣中部，是由埔里、魚池、日月潭等多個陷落盆地組成的盆地群。該區四周環山，水質優良、氣候宜人，以產茭白筍、百香果及酒廠著稱。台灣的「地理中心碑」亦座落於埔里鎮，是全台灣唯一不靠海的縣市核心地理區。"
+                description: "埔里盆地地位於南投縣中部，是由埔里、魚池、日月潭等多個陷落盆地組成的盆地群。\n\n該區四周環山，水質優良、氣候宜人，以產茭白筍、百香果及埔里酒廠著稱。台灣的「地理中心碑」亦座落於埔里鎮，是全台灣唯一不靠海的縣市核心地理區。"
+            },
+            "臺北市": {
+                commonName: "台北盆地 / 首善之區",
+                description: "台灣的政治、經濟與文化中心，位於台北盆地中央，周圍由新北市環繞，擁有台北101、故宮博物院等著名地標。"
+            },
+            "新北市": {
+                commonName: "淡水河谷 / 鐵道山城",
+                description: "圍繞台北市的環狀直轄市，人口全台最多。擁有淡水老街、九份山城、平溪天燈以及東北角海岸等豐富景觀。"
+            },
+            "基隆市": {
+                commonName: "雨港 / 基隆港",
+                description: "位於台灣東北部的天然良港，因終年多雨被譽為「雨港」，以基隆廟口夜市與港灣夜景聞名。"
+            },
+            "桃園市": {
+                commonName: "桃園台地 / 國門之都",
+                description: "台灣主要的國際航空樞紐所在地（桃園國際機場），地形以台地為主，過去擁有數千座灌溉埤塘，被譽為「千塘之鄉」。"
+            },
+            "新竹市": {
+                commonName: "風城 / 新竹科學園區",
+                description: "因冬季九降風強勁而有「風城」之稱，為台灣高科技產業重鎮「新竹科學園區」所在地，著名美食為貢丸與米粉。"
+            },
+            "新竹縣": {
+                commonName: "竹塹山城 / 客家庄",
+                description: "包含竹東、新埔與內灣等地，擁有深厚的客家文化底蘊，山區有司馬庫斯與觀霧等自然絕景。"
+            },
+            "苗栗縣": {
+                commonName: "山城 / 山線客庄",
+                description: "地形多山，被譽為「山城」。以三義木雕、舊山線鐵道勝興車站、大湖草莓以及溫泉聞名。"
+            },
+            "臺中市": {
+                commonName: "台中盆地 / 中台灣樞紐",
+                description: "位於台中盆地，氣候宜人。擁有高美濕地、逢甲夜市、谷關溫泉與梨山等著名景點。"
+            },
+            "彰化縣": {
+                commonName: "彰化平原 / 鹿港古鎮",
+                description: "位於嘉南平原北端，農業發達。擁有著名地標八卦山大佛，以及保存豐富歷史古蹟與傳統美食的鹿港老街。"
+            },
+            "雲林縣": {
+                commonName: "農業大縣 / 布袋戲之鄉",
+                description: "位於嘉南平原北部，為台灣重要農業與蔬菜生產基地，同時也是傳統布袋戲文化的發源地。"
+            },
+            "嘉義市": {
+                commonName: "桃城 / 阿里山入口",
+                description: "古稱「桃城」，為阿里山森林鐵路的起點，歷史文化氣息濃厚，以嘉義火雞肉飯與檜意森活村聞名。"
+            },
+            "嘉義縣": {
+                commonName: "嘉南平原 / 阿里山",
+                description: "擁有世界級觀光景點阿里山國家風景區、高山茶園與故宮南院，幅員廣闊，兼具高山與平原景致。"
+            },
+            "臺南市": {
+                commonName: "府城 / 台灣古都",
+                description: "台灣歷史最悠久的城市，擁有赤崁樓、安平古堡等眾多國定古蹟，也是全台公認的傳統美食美食之都。"
+            },
+            "高雄市": {
+                commonName: "打狗 / 高雄港都",
+                description: "台灣南部的核心直轄市，擁有台灣第一大港高雄港、駁二藝術特區、旗津與愛河，展現海港城市的獨特活力。"
+            },
+            "屏東縣": {
+                commonName: "恆春半島 / 墾丁",
+                description: "位於台灣最南端，擁有名揚國際的墾丁國家公園、鵝鑾鼻燈塔，以及離島小琉球，為熱帶海洋觀光勝地。"
+            },
+            "宜蘭縣": {
+                commonName: "蘭陽平原 / 龜山島",
+                description: "位於東北部，擁有宜人的蘭陽平原自然風光、礁溪溫泉與龜山島景觀，為台北後花園。"
+            },
+            "花蓮縣": {
+                commonName: "太魯閣峽谷 / 後山",
+                description: "台灣面積最大的縣市，擁有世界級的大理石峽谷景觀「太魯閣國家公園」與壯麗的清水斷崖。"
+            },
+            "臺東縣": {
+                commonName: "花東縱谷 / 太陽之鄉",
+                description: "擁有優美的太平洋海岸線與花東縱谷風景，每年舉辦熱氣球嘉年華，並管轄綠島與蘭嶼兩座美麗離島。"
+            },
+            "澎湖縣": {
+                commonName: "菊島 / 澎湖群島",
+                description: "位於台灣海峽上的離島縣，擁有獨特的玄武岩地質景觀、雙心石滬、跨海大橋與夏日花火節。"
+            },
+            "金門縣": {
+                commonName: "浯洲 / 戰地金門",
+                description: "位於廈門灣口的離島，保留大量冷戰時期的軍事戰地遺跡、傳統閩南古厝建築與風獅爺信仰。"
             },
             "連江縣": {
                 commonName: "馬祖列島",
-                description: "位於台灣海峽西北方，主要由南竿、北竿、東引與莒光等島嶼組成。擁有獨特的戰地風情、閩東石屋建築以及著名的季節限定自然景觀「藍眼淚」。"
-            },
-            "台北市": {
-                commonName: "台北盆地",
-                description: "台灣的政治、經濟與文化中心，位於台北盆地中央，四周被新北市環繞，擁有高度發達的大眾運輸系統與豐富的文教資源。"
+                description: "位於台灣海峽西北方，主要由南竿、北竿、東引與莒光等島嶼組成。擁有獨特的戰地風情、閩東石屋建築以及季節限定的「藍眼淚」奇景。"
             }
         };
 
-        // DOM 元素擷取
+        // DOM 元素控制
         const countyPaths = document.querySelectorAll('.county-path');
         const placeholder = document.getElementById('placeholder');
         const detailCard = document.getElementById('detail-card');
@@ -163,34 +317,25 @@
         const commonNameEl = document.getElementById('common-name');
         const descriptionEl = document.getElementById('description');
 
-        // 綁定點擊事件
+        // 綁定所有縣市區塊點擊事件
         countyPaths.forEach(path => {
             path.addEventListener('click', function() {
-                // 清除所有 active 狀態
+                // 清除其他區塊 active 狀態
                 countyPaths.forEach(p => p.classList.remove('active'));
                 
-                // 設定當前點擊區塊高亮
+                // 設定目前點擊縣市高亮
                 this.classList.add('active');
 
                 const countyName = this.getAttribute('data-name');
                 const data = countyDatabase[countyName];
 
                 if (data) {
-                    // 隱藏預設提示，顯示詳細資訊
                     placeholder.style.display = 'none';
                     detailCard.style.display = 'block';
 
                     countyNameEl.textContent = countyName;
                     commonNameEl.textContent = `常見名稱 / 地形：${data.commonName}`;
                     descriptionEl.textContent = data.description;
-                } else {
-                    // 未建置資料時的退路處理
-                    placeholder.style.display = 'none';
-                    detailCard.style.display = 'block';
-                    
-                    countyNameEl.textContent = countyName;
-                    commonNameEl.textContent = "常見名稱：暫無資料";
-                    descriptionEl.textContent = "尚無該縣市的詳細介紹資料。";
                 }
             });
         });
