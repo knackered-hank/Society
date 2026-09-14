@@ -3,88 +3,120 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Taiwan Map</title>
+  <title>台灣地形盲圖測驗</title>
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      width: 100vw;
-      height: 100vh;
-      background-color: #ffffff;
-      overflow: hidden;
+      display: flex; justify-content: center; align-items: center;
+      width: 100vw; height: 100vh; background-color: #1e293b; overflow: hidden;
+      font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
     }
-
-    #map-container {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
+    
+    #map-container { width: 100%; height: 95vh; display: flex; justify-content: center; }
+    
     svg {
-      width: 100%;
-      height: 100%;
-      max-width: 90vw;
-      max-height: 90vh;
-      /* 調整縮放與置中焦點，確保南北全島都能完整顯示 */
-      transform: scale(0.9);
-      transform-origin: 65% 50%;
+      width: 100%; height: 100%; max-height: 95vh;
+      transform: scale(0.95); transform-origin: center center;
     }
+
+    /* 互動與浮出動畫設定 */
+    svg path {
+      transition: all 0.2s ease-in-out;
+      cursor: pointer;
+      stroke: #ffffff;
+      stroke-width: 1px;
+    }
+    svg path:hover {
+      transform: translateY(-5px);
+      fill: #facc15 !important;
+      filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.6));
+    }
+
+    /* 強制隱藏所有地名文字與離島，變成盲圖 */
+    text, #box, 
+    path[title*="連江"], path[title*="金門"], path[title*="澎湖"] {
+      display: none !important;
+    }
+
+    /* 點擊跳出的解答視窗 */
+    #answer-modal {
+      position: absolute; top: 10%; left: 50%; transform: translateX(-50%);
+      background: rgba(255, 255, 255, 0.95); color: #0f172a;
+      padding: 20px 40px; border-radius: 50px;
+      font-size: 32px; font-weight: bold;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      opacity: 0; transition: opacity 0.3s; pointer-events: none;
+      z-index: 100;
+    }
+    
+    .hint {
+      position: absolute; bottom: 30px; font-size: 20px; color: #94a3b8; font-weight: bold;
+    }
+    .error { color: #ef4444; font-size: 24px; position: absolute; z-index: 999; }
   </style>
 </head>
 <body>
 
+  <div id="answer-modal">解答會顯示在這裡</div>
   <div id="map-container"></div>
+  <div class="hint">👆 請學生點擊地圖上的區塊，顯示對應地形</div>
 
   <script>
-    // 支援檔名包含空格的 URL 編碼
-    const svgFileName = encodeURIComponent('Taiwan map labeled.svg').replace(/%20/g, ' ');
+    // 台灣各地代表地形資料庫 (可隨時自行增減修改)
+    const geoData = {
+      '基隆市': '谷灣式海岸 (基隆港)',
+      '臺北市': '臺北盆地',
+      '新北市': '林口臺地 / 火山',
+      '桃園市': '桃園臺地',
+      '新竹市': '新竹平原',
+      '新竹縣': '新竹丘陵',
+      '苗栗縣': '苗栗丘陵',
+      '臺中市': '臺中盆地 / 大肚臺地',
+      '彰化縣': '彰化平原',
+      '南投縣': '埔里盆地 / 中央山脈',
+      '雲林縣': '嘉南平原',
+      '嘉義市': '嘉南平原',
+      '嘉義縣': '嘉南平原 / 阿里山',
+      '臺南市': '嘉南平原 / 潟湖',
+      '高雄市': '高屏平原',
+      '屏東縣': '屏東平原 / 恆春半島',
+      '宜蘭縣': '蘭陽平原',
+      '花蓮縣': '花東縱谷平原',
+      '臺東縣': '海岸山脈 / 縱谷'
+    };
 
-    fetch(svgFileName)
+    const container = document.getElementById('map-container');
+    const modal = document.getElementById('answer-modal');
+
+    // 載入改名後的 map.svg
+    fetch('map.svg')
       .then(response => {
-        if (!response.ok) throw new Error('找不到 SVG 檔案');
+        if (!response.ok) throw new Error('找不到 map.svg，請確定檔案名稱沒有任何空格並已上傳至 GitHub');
         return response.text();
       })
       .then(svgText => {
-        const container = document.getElementById('map-container');
         container.innerHTML = svgText;
         const svg = container.querySelector('svg');
 
         if (svg) {
-          // 離島與不需要的關鍵字清單
-          const hideKeywords = ['福建', '金門', '連江', '澎湖', '馬祖'];
-
-          // 1. 隱藏外框線視窗與圖例
-          const box = svg.querySelector('#box');
-          if (box) box.style.display = 'none';
-
-          // 2. 遍歷所有 SVG 元素，文字或屬性符合就強制隱藏
-          const allElements = svg.querySelectorAll('*');
-          allElements.forEach(el => {
-            const id = el.id || '';
-            const title = el.getAttribute('title') || '';
-            const text = el.textContent || '';
-
-            const shouldHide = hideKeywords.some(kw => 
-              id.includes(kw) || title.includes(kw) || text.includes(kw)
-            );
-
-            if (shouldHide) {
-              el.style.display = 'none';
+          // 綁定點擊事件
+          const paths = svg.querySelectorAll('path');
+          paths.forEach(path => {
+            const countyName = path.getAttribute('title');
+            if (countyName && geoData[countyName]) {
+              path.addEventListener('click', (e) => {
+                modal.innerHTML = `【${countyName}】 ${geoData[countyName]}`;
+                modal.style.opacity = 1;
+                
+                // 3 秒後自動隱藏解答
+                setTimeout(() => { modal.style.opacity = 0; }, 3000);
+              });
             }
           });
         }
       })
       .catch(err => {
-        console.error('載入失敗：', err);
+        container.innerHTML = `<div class="error">載入失敗：${err.message}</div>`;
       });
   </script>
 </body>
