@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台灣五大地形 課堂挑戰賽</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: "Microsoft JhengHei", "PingFang TC", sans-serif;
+        }
+        body {
+            background-color: #f0f8ff;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            color: #2c3e50;
+            font-size: 2.2rem;
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            font-size: 1.3rem;
+            color: #e74c3c;
+            font-weight: bold;
+            margin-bottom: 20px;
+            height: 30px;
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            justify-content: center;
+            max-width: 1000px;
+            width: 100%;
+        }
+        /* 台灣地圖容器 */
+        .map-container {
+            background: #ffffff;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            position: relative;
+            width: 380px;
+            height: 520px;
+        }
+        svg {
+            width: 100%;
+            height: 100%;
+        }
+        .region {
+            fill: #a8e6cf;
+            stroke: #ffffff;
+            stroke-width: 2;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .region:hover {
+            fill: #ff8b94;
+            transform: scale(1.02);
+            filter: drop-shadow(0px 5px 5px rgba(0,0,0,0.2));
+        }
+        .region-label {
+            font-size: 14px;
+            font-weight: bold;
+            fill: #2d3436;
+            pointer-events: none;
+            text-anchor: middle;
+        }
+
+        /* 右側儀表板 / 提示 */
+        .dashboard {
+            flex: 1;
+            min-width: 320px;
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        .countdown-box {
+            font-size: 5rem;
+            font-weight: bold;
+            color: #e74c3c;
+            margin: 10px 0;
+        }
+        .btn-timer {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1.2rem;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-timer:hover {
+            background-color: #2980b9;
+        }
+
+        /* Modal 彈窗 */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white;
+            width: 90%;
+            max-width: 550px;
+            border-radius: 20px;
+            padding: 25px;
+            position: relative;
+            animation: popIn 0.3s ease;
+            text-align: center;
+        }
+        @keyframes popIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .close-btn {
+            position: absolute;
+            top: 15px; right: 20px;
+            font-size: 2rem;
+            cursor: pointer;
+            color: #aaa;
+        }
+        .close-btn:hover { color: #000; }
+        .result-img {
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+            border-radius: 12px;
+            background: #eee;
+            margin: 15px 0;
+        }
+        .badge {
+            display: inline-block;
+            background: #ff6b6b;
+            color: white;
+            font-size: 1.4rem;
+            padding: 5px 15px;
+            border-radius: 20px;
+            margin-bottom: 10px;
+        }
+        .gesture-hint {
+            font-size: 1.2rem;
+            color: #2e86de;
+            font-weight: bold;
+            background: #eef5fc;
+            padding: 8px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .explanation {
+            font-size: 1.1rem;
+            color: #485460;
+            line-height: 1.6;
+            text-align: left;
+            background: #f9f9f9;
+            padding: 12px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🗺️ 台灣地形大挑戰：出拳吧！</h1>
+    <div class="subtitle" id="hover-status">把滑鼠移到地圖上選區域...</div>
+
+    <div class="container">
+        <!-- 台灣互動地圖 -->
+        <div class="map-container">
+            <svg viewBox="0 0 300 450">
+                <!-- 台北 / 士林 -->
+                <path class="region" id="taipei" d="M 180 50 L 220 40 L 230 70 L 190 80 Z" 
+                      onmouseenter="showHover('台北市/士林區')" onmouseleave="clearHover()" onclick="openCard('taipei')"/>
+                <text x="205" y="60" class="region-label">台北/士林</text>
+
+                <!-- 桃園 / 台地 -->
+                <path class="region" id="taoyuan" d="M 140 60 L 180 50 L 190 80 L 150 100 Z" 
+                      onmouseenter="showHover('桃園台地')" onmouseleave="clearHover()" onclick="openCard('taoyuan')"/>
+                <text x="165" y="75" class="region-label">桃園</text>
+
+                <!-- 苗栗 / 丘陵 -->
+                <path class="region" id="miaoli" d="M 120 100 L 150 100 L 160 140 L 110 130 Z" 
+                      onmouseenter="showHover('苗栗丘陵')" onmouseleave="clearHover()" onclick="openCard('miaoli')"/>
+                <text x="135" y="120" class="region-label">苗栗</text>
+
+                <!-- 嘉南 / 平原 -->
+                <path class="region" id="jianan" d="M 70 200 L 110 190 L 110 300 L 60 280 Z" 
+                      onmouseenter="showHover('嘉南平原')" onmouseleave="clearHover()" onclick="openCard('jianan')"/>
+                <text x="85" y="245" class="region-label">嘉南平原</text>
+
+                <!-- 中央山脈 / 山地 -->
+                <path class="region" id="mountain" d="M 150 140 L 190 130 L 170 320 L 120 300 Z" 
+                      onmouseenter="showHover('中央山脈')" onmouseleave="clearHover()" onclick="openCard('mountain')"/>
+                <text x="155" y="220" class="region-label">中央山脈</text>
+            </svg>
+        </div>
+
+        <!-- 倒數計時與控場儀表板 -->
+        <div class="dashboard">
+            <h2>倒數出拳計時器</h2>
+            <div class="countdown-box" id="timer">5</div>
+            <button class="btn-timer" onclick="startTimer()">⏱️ 開始 5 秒倒數</button>
+            <p style="color: #7f8c8d; margin-top: 20px;">
+                點擊地圖上的地點前，先按下倒數！<br>倒數歸零時全班必須擺好地形拳！
+            </p>
+        </div>
+    </div>
+
+    <!-- 揭曉答案 Modal 彈窗 -->
+    <div class="modal-overlay" id="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeCard()">&times;</span>
+            <h2 id="m-title" style="margin: 5px 0;">地區名稱</h2>
+            <div><span class="badge" id="m-landform">地形類別</span></div>
+            <div class="gesture-hint" id="m-gesture">手勢：--</div>
+            
+            <!-- 圖片路徑可以在下面 JS 更改 -->
+            <img id="m-img" class="result-img" src="" alt="地形圖片">
+
+            <div class="explanation" id="m-desc">解釋說明載入中...</div>
+        </div>
+    </div>
+
+    <script>
+        // 資料庫：可自行替換圖片網址 (img) 與文字說明
+        const data = {
+            taipei: {
+                title: "臺北市士林區 (蘭雅國小周邊)",
+                landform: "盆地 (臺北盆地)",
+                gesture: "👊 雙手向內捧成碗狀 🥣",
+                img: "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=600&auto=format&fit=crop", // 可換成士林/台北圖片
+                desc: "<b>為什麼是盆地？</b><br>台北市四周被陽明山系與雪山山脈等高山包圍，中間地勢比較低平，形狀就像一個大碗一樣！所以屬於『盆地』。"
+            },
+            taoyuan: {
+                title: "桃園市 / 林口地區",
+                landform: "台地 (桃園台地)",
+                gesture: "👊 一手橫平一手豎立 (T字型) 凸",
+                img: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=600&auto=format&fit=crop", 
+                desc: "<b>為什麼是台地？</b><br>這裡的頂部看起來平平廣廣的，但是邊緣有顯著陡峭的斜坡，像是一個高起來的平台。"
+            },
+            miaoli: {
+                title: "苗栗縣 / 石碇地區",
+                landform: "丘陵 (苗栗丘陵)",
+                gesture: "👊 手掌上下做微幅波浪 〰️",
+                img: "https://images.unsplash.com/photo-1586348943529-beaae6c28db9?w=600&auto=format&fit=crop", 
+                desc: "<b>為什麼是丘陵？</b><br>高度不超過 1000 公尺，起伏比較緩和。因為排水良好，這裡非常適合用來開闢茶園或水果園！"
+            },
+            jianan: {
+                title: "嘉南平原 / 宜蘭地區",
+                landform: "平原 (嘉南平原)",
+                gesture: "👊 雙手平平對接 🖐️",
+                img: "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=600&auto=format&fit=crop", 
+                desc: "<b>為什麼是平原？</b><br>地勢低平、寬廣無邊，大多是由河川沖積而成。這裡是臺灣最重要的農業基地，適合大面積種植稻米！"
+            },
+            mountain: {
+                title: "中央山脈 / 陽明山",
+                landform: "山地 (中央山脈)",
+                gesture: "👊 雙手合十指尖向上 (尖頂山峰) ⛰️",
+                img: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&auto=format&fit=crop", 
+                desc: "<b>為什麼是山地？</b><br>高度通常在 1000 公尺以上，地勢非常高聳、坡度陡峭。中央山脈也是臺灣的『屋脊』喔！"
+            }
+        };
+
+        // 滑鼠移入效果
+        function showHover(name) {
+            document.getElementById('hover-status').innerText = `👉 要點開【${name}】囉！不可以偷變拳喔！`;
+        }
+
+        function clearHover() {
+            document.getElementById('hover-status').innerText = "把滑鼠移到地圖上選區域...";
+        }
+
+        // 開啟結果彈窗
+        function openCard(key) {
+            const item = data[key];
+            if (!item) return;
+
+            document.getElementById('m-title').innerText = item.title;
+            document.getElementById('m-landform').innerText = item.landform;
+            document.getElementById('m-gesture').innerText = item.gesture;
+            document.getElementById('m-img').src = item.img;
+            document.getElementById('m-desc').innerHTML = item.desc;
+
+            document.getElementById('modal').style.display = 'flex';
+        }
+
+        function closeCard() {
+            document.getElementById('modal').style.display = 'none';
+        }
+
+        // 倒數計時功能
+        let timerInterval;
+        function startTimer() {
+            let count = 5;
+            const timerEl = document.getElementById('timer');
+            timerEl.innerText = count;
+            
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    timerEl.innerText = count;
+                } else {
+                    timerEl.innerText = "定格！";
+                    clearInterval(timerInterval);
+                }
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
